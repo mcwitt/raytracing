@@ -7,6 +7,8 @@
 module Main (main) where
 
 import safe Relude
+import safe System.IO (hPutStr)
+import safe Text.Printf (printf)
 
 type RGB = (Double, Double, Double)
 
@@ -21,23 +23,25 @@ encodeP3 PPM {..} =
         ]
    in unlines (header <> rows)
 
-example :: PPM
-example =
+render :: IO PPM
+render =
   let width = 300
       height = 300
       maxP = 255
-   in PPM
-        width
-        height
-        maxP
-        [ [ ( fromIntegral r / fromIntegral height * fromIntegral maxP,
-              fromIntegral c / fromIntegral width * fromIntegral maxP,
-              fromIntegral maxP
-            )
-            | c <- [1 .. width]
-          ]
-          | r <- [1 .. height]
-        ]
+      rows = mapM (renderRow maxP width height) [1 .. height]
+   in PPM width height maxP <$> rows
+  where
+    renderRow maxP w h r = do
+      hPutStr stderr $ printf "\rProgress: %d/%d" r h
+      mapM (renderPixel maxP w h r) [1 .. w]
+    renderPixel maxP w h r c =
+      pure
+        ( fromIntegral r / fromIntegral h * fromIntegral maxP,
+          fromIntegral c / fromIntegral w * fromIntegral maxP,
+          fromIntegral maxP
+        )
 
 main :: IO ()
-main = putTextLn $ encodeP3 example
+main = do
+  image <- render
+  putTextLn $ encodeP3 image
