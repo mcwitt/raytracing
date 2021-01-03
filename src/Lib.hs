@@ -56,21 +56,27 @@ lowerLeftCorner ViewportConfig {..} =
 at :: Ray -> Double -> R3 Double
 at (Ray orig dir) t = orig `plus` (dir `ctimes` t)
 
-hitSphere :: R3 Double -> Double -> Ray -> Bool
-hitSphere center radius (Ray orig dir) =
-  let oc = center `minus` orig
+hitSphere :: R3 Double -> Double -> Ray -> Maybe Double
+hitSphere center radius ray@(Ray orig dir) =
+  let oc = orig `minus` center
       a = norm2 dir
-      b = 2 * (dir `dot` oc)
+      b = 2 * (oc `dot` dir)
       c = norm2 oc - radius ^ 2
-   in b ^ 2 - 4 * a * c > 0
+      discriminant = b ^ 2 - 4 * a * c
+   in if discriminant >= 0
+        then Just ((- b - sqrt discriminant) / (2 * a))
+        else Nothing
 
 rayColor :: Ray -> RGB
 rayColor ray@(Ray _ dir) =
   let R3 _ y _ = unit dir
       s = 0.5 * (y + 1.0)
-   in if hitSphere (R3 0 0 (-1)) 0.5 ray
-        then R3 1 0 0
-        else (R3 1 1 1 `ctimes` (1.0 - s)) `plus` (R3 0.5 0.7 1.0 `ctimes` s)
+      center = R3 0 0 (-1)
+   in case hitSphere center 0.5 ray of
+        Just t ->
+          let R3 u v w = unit ((ray `at` t) `minus` center)
+           in R3 (u + 1) (v + 1) (w + 1) `ctimes` 0.5
+        Nothing -> (R3 1 1 1 `ctimes` (1.0 - s)) `plus` (R3 0.5 0.7 1.0 `ctimes` s)
 
 render :: ImageConfig -> ViewportConfig -> IO PPM
 render ImageConfig {..} vp@ViewportConfig {..} =

@@ -21,17 +21,14 @@ ctimes (R3 x y z) c = R3 (c * x) (c * y) (c * z)
 cdiv :: RealFrac a => R3 a -> a -> R3 a
 cdiv u c = ctimes u (1 / c)
 
-dot2 :: Real a => R3 a -> R3 a -> a
-dot2 (R3 x1 y1 z1) (R3 x2 y2 z2) = x1 * x2 + y1 * y2 + z1 * z2
-
-dot :: RealFloat a => R3 a -> R3 a -> a
-dot u = sqrt . dot2 u
+dot :: Real a => R3 a -> R3 a -> a
+dot (R3 x1 y1 z1) (R3 x2 y2 z2) = x1 * x2 + y1 * y2 + z1 * z2
 
 norm2 :: Real a => R3 a -> a
-norm2 u = dot2 u u
+norm2 u = dot u u
 
 norm :: RealFloat a => R3 a -> a
-norm u = dot u u
+norm = sqrt . norm2
 
 cross :: Real a => R3 a -> R3 a -> R3 a
 cross (R3 x1 y1 z1) (R3 x2 y2 z2) =
