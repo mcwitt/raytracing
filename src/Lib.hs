@@ -11,7 +11,7 @@ import safe PPM (PPM (PPM))
 import safe Relude
 import safe System.IO (hPutStr)
 import safe Text.Printf (printf)
-import safe Vec (R3 (R3), cdiv, ctimes, minus, plus, unit)
+import safe Vec (R3 (R3), cdiv, ctimes, dot, minus, norm2, plus, unit)
 
 data Ray = Ray {rayOrig :: R3 Double, rayDir :: R3 Double}
 
@@ -24,7 +24,7 @@ aspectRatio :: ImageConfig -> Ratio Int
 aspectRatio (ImageConfig w h) = w % h
 
 defaultImageConfig :: ImageConfig
-defaultImageConfig = ImageConfig {imWidth = 400, imHeight = 225}
+defaultImageConfig = ImageConfig {imWidth = 800, imHeight = 450}
 
 data ViewportConfig = ViewportConfig
   { viewportHeight :: Double,
@@ -56,11 +56,21 @@ lowerLeftCorner ViewportConfig {..} =
 at :: Ray -> Double -> R3 Double
 at (Ray orig dir) t = orig `plus` (dir `ctimes` t)
 
+hitSphere :: R3 Double -> Double -> Ray -> Bool
+hitSphere center radius (Ray orig dir) =
+  let oc = center `minus` orig
+      a = norm2 dir
+      b = 2 * (dir `dot` oc)
+      c = norm2 oc - radius ^ 2
+   in b ^ 2 - 4 * a * c > 0
+
 rayColor :: Ray -> RGB
-rayColor (Ray _ dir) =
+rayColor ray@(Ray _ dir) =
   let R3 _ y _ = unit dir
       s = 0.5 * (y + 1.0)
-   in (R3 1 1 1 `ctimes` (1.0 - s)) `plus` (R3 0.5 0.7 1.0 `ctimes` s)
+   in if hitSphere (R3 0 0 (-1)) 0.5 ray
+        then R3 1 0 0
+        else (R3 1 1 1 `ctimes` (1.0 - s)) `plus` (R3 0.5 0.7 1.0 `ctimes` s)
 
 render :: ImageConfig -> ViewportConfig -> IO PPM
 render ImageConfig {..} vp@ViewportConfig {..} =
