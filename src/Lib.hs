@@ -60,11 +60,11 @@ hitSphere :: R3 Double -> Double -> Ray -> Maybe Double
 hitSphere center radius ray@(Ray orig dir) =
   let oc = orig `minus` center
       a = norm2 dir
-      b = 2 * (oc `dot` dir)
+      b = oc `dot` dir
       c = norm2 oc - radius ^ 2
-      discriminant = b ^ 2 - 4 * a * c
-   in if discriminant >= 0
-        then Just ((- b - sqrt discriminant) / (2 * a))
+      d = b ^ 2 - a * c
+   in if d >= 0
+        then Just ((- b - sqrt d) / a)
         else Nothing
 
 rayColor :: Ray -> RGB
