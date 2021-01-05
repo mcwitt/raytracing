@@ -1,4 +1,4 @@
-module Color where
+module Color (RGB, RGBInt, rgbInt) where
 
 import Vec (R3 (R3))
 

@@ -1,19 +1,20 @@
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE Safe #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Lib (render, defaultImageConfig, defaultViewportConfig) where
 
-import safe Color (RGB, RGBInt, rgbInt)
+import safe Color (RGB, rgbInt)
 import safe Data.Ratio ((%))
+import safe Hittable
+  ( Hit (Hit, hitAt, hitNormal, hitPoint),
+    Sphere (Sphere, spCenter, spRadius),
+    hit,
+  )
 import safe PPM (PPM (PPM))
-import safe Relude
+import safe Ray (Ray (Ray))
 import safe System.IO (hPutStr)
 import safe Text.Printf (printf)
-import safe Vec (R3 (R3), cdiv, ctimes, dot, minus, norm2, plus, unit)
-
-data Ray = Ray {rayOrig :: R3 Double, rayDir :: R3 Double}
+import safe Vec (R3 (R3), cdiv, ctimes, minus, plus, unit)
 
 data ImageConfig = ImageConfig
   { imWidth :: Int,
@@ -33,7 +34,6 @@ data ViewportConfig = ViewportConfig
     horizontal :: R3 Double,
     vertical :: R3 Double
   }
-  deriving (Show)
 
 defaultViewportConfig :: ImageConfig -> ViewportConfig
 defaultViewportConfig ic =
@@ -53,28 +53,14 @@ lowerLeftCorner :: ViewportConfig -> R3 Double
 lowerLeftCorner ViewportConfig {..} =
   origin `minus` (horizontal `cdiv` 2) `minus` (vertical `cdiv` 2) `minus` R3 0 0 focalLength
 
-at :: Ray -> Double -> R3 Double
-at (Ray orig dir) t = orig `plus` (dir `ctimes` t)
-
-hitSphere :: R3 Double -> Double -> Ray -> Maybe Double
-hitSphere center radius ray@(Ray orig dir) =
-  let oc = orig `minus` center
-      a = norm2 dir
-      b = oc `dot` dir
-      c = norm2 oc - radius ^ 2
-      d = b ^ 2 - a * c
-   in if d >= 0
-        then Just ((- b - sqrt d) / a)
-        else Nothing
-
 rayColor :: Ray -> RGB
 rayColor ray@(Ray _ dir) =
   let R3 _ y _ = unit dir
       s = 0.5 * (y + 1.0)
-      center = R3 0 0 (-1)
-   in case hitSphere center 0.5 ray of
-        Just t ->
-          let R3 u v w = unit ((ray `at` t) `minus` center)
+      sphere = Sphere {spCenter = R3 0 0 (-1), spRadius = 0.5}
+   in case hit sphere ray 0 1000 of
+        Just Hit {..} ->
+          let R3 u v w = hitNormal
            in R3 (u + 1) (v + 1) (w + 1) `ctimes` 0.5
         Nothing -> (R3 1 1 1 `ctimes` (1.0 - s)) `plus` (R3 0.5 0.7 1.0 `ctimes` s)
 

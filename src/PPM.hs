@@ -1,11 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module PPM (PPM (PPM), encodeP3) where
 
 import Color (RGBInt)
-import Relude
 import Vec (R3 (R3))
 
 data PPM = PPM {ppmWidth :: Int, ppmHeight :: Int, ppmMaxP :: Int, ppmRows :: [[RGBInt]]}

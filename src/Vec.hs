@@ -1,12 +1,12 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Vec where
+module Vec (R3 (R3), cross, cdiv, ctimes, dot, minus, neg, norm2, plus, unit) where
 
 data R3 a where
   R3 :: Real a => a -> a -> a -> R3 a
 
-deriving instance Show a => Show (R3 a)
+deriving stock instance Show a => Show (R3 a)
 
 neg :: R3 a -> R3 a
 neg (R3 x y z) = R3 (- x) (- y) (- z)

@@ -1,11 +1,11 @@
-{-# LANGUAGE Safe #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-
 module Main (main) where
 
 import safe Lib
+  ( defaultImageConfig,
+    defaultViewportConfig,
+    render,
+  )
 import safe PPM (encodeP3)
-import Relude
 
 main :: IO ()
 main = do
