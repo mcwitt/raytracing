@@ -57,8 +57,11 @@ rayColor :: Ray -> RGB
 rayColor ray@(Ray _ dir) =
   let R3 _ y _ = unit dir
       s = 0.5 * (y + 1.0)
-      sphere = Sphere {spCenter = R3 0 0 (-1), spRadius = 0.5}
-   in case hit sphere ray 0 1000 of
+      world =
+        [ Sphere {spCenter = R3 0 0 (-1), spRadius = 0.5},
+          Sphere {spCenter = R3 0 (-100.5) (-1), spRadius = 100}
+        ]
+   in case hit ray 0 1000 world of
         Just Hit {..} ->
           let R3 u v w = hitNormal
            in R3 (u + 1) (v + 1) (w + 1) `ctimes` 0.5
@@ -67,7 +70,7 @@ rayColor ray@(Ray _ dir) =
 render :: ImageConfig -> ViewportConfig -> IO PPM
 render ImageConfig {..} vp@ViewportConfig {..} =
   let cmax = 255
-      rows = forM [1 .. imHeight] $ \r -> do
+      rows = forM (reverse [1 .. imHeight]) $ \r -> do
         hPutStr stderr $ printf "\rProgress: %d/%d" r imHeight
         forM [1 .. imWidth] $ \c ->
           let u = fromIntegral c / fromIntegral imWidth

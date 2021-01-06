@@ -11,7 +11,7 @@ data Hit = Hit
   }
 
 class Hittable a where
-  hit :: a -> Ray -> Double -> Double -> Maybe Hit
+  hit :: Ray -> Double -> Double -> a -> Maybe Hit
 
 data Sphere = Sphere
   { spCenter :: R3 Double,
@@ -19,7 +19,7 @@ data Sphere = Sphere
   }
 
 instance Hittable Sphere where
-  hit (Sphere center radius) ray@(Ray orig dir) tmin tmax =
+  hit ray@(Ray orig dir) tmin tmax (Sphere center radius) =
     let oc = orig `minus` center
         a = norm2 dir
         b = oc `dot` dir
@@ -38,3 +38,6 @@ instance Hittable Sphere where
                 hitFront = isFront,
                 hitAt = t
               }
+
+instance Hittable a => Hittable [a] where
+  hit ray tmin tmax = getAlt . foldMap (Alt . hit ray tmin tmax)
