@@ -1,4 +1,4 @@
-module Hittable (Hit (..), Sphere (..), hit) where
+module Hittable (Hit (..), Hittable, Sphere (..), hit) where
 
 import Ray (Ray (Ray), at)
 import Vec (R3, dot, minus, neg, norm2, unit)

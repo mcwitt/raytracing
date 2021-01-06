@@ -7,7 +7,7 @@ import safe Color (RGB, rgbInt)
 import safe Data.Ratio ((%))
 import safe Hittable
   ( Hit (Hit, hitAt, hitNormal, hitPoint),
-    Sphere (Sphere, spCenter, spRadius),
+    Hittable,
     hit,
   )
 import safe PPM (PPM (PPM))
@@ -53,29 +53,25 @@ lowerLeftCorner :: ViewportConfig -> R3 Double
 lowerLeftCorner ViewportConfig {..} =
   origin `minus` (horizontal `cdiv` 2) `minus` (vertical `cdiv` 2) `minus` R3 0 0 focalLength
 
-rayColor :: Ray -> RGB
-rayColor ray@(Ray _ dir) =
+rayColor :: Hittable a => a -> Ray -> RGB
+rayColor world ray@(Ray _ dir) =
   let R3 _ y _ = unit dir
       s = 0.5 * (y + 1.0)
-      world =
-        [ Sphere {spCenter = R3 0 0 (-1), spRadius = 0.5},
-          Sphere {spCenter = R3 0 (-100.5) (-1), spRadius = 100}
-        ]
    in case hit ray 0 1000 world of
         Just Hit {..} ->
           let R3 u v w = hitNormal
            in R3 (u + 1) (v + 1) (w + 1) `ctimes` 0.5
         Nothing -> (R3 1 1 1 `ctimes` (1.0 - s)) `plus` (R3 0.5 0.7 1.0 `ctimes` s)
 
-render :: ImageConfig -> ViewportConfig -> IO PPM
-render ImageConfig {..} vp@ViewportConfig {..} =
+render :: Hittable a => ImageConfig -> ViewportConfig -> a -> IO PPM
+render ImageConfig {..} vp@ViewportConfig {..} world =
   let cmax = 255
       rows = forM (reverse [1 .. imHeight]) $ \r -> do
         hPutStr stderr $ printf "\rProgress: %d/%d" r imHeight
         forM [1 .. imWidth] $ \c ->
           let u = fromIntegral c / fromIntegral imWidth
               v = fromIntegral r / fromIntegral imHeight
-           in pure . rgbInt cmax . rayColor $
+           in pure . rgbInt cmax . rayColor world $
                 Ray
                   origin
                   ( lowerLeftCorner vp
