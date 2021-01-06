@@ -1,11 +1,12 @@
 module Hittable (Hit (..), Sphere (..), hit) where
 
 import Ray (Ray (Ray), at)
-import Vec (R3, dot, minus, norm2, unit)
+import Vec (R3, dot, minus, neg, norm2, unit)
 
 data Hit = Hit
   { hitPoint :: R3 Double,
     hitNormal :: R3 Double,
+    hitFront :: Bool,
     hitAt :: Double
   }
 
@@ -28,5 +29,12 @@ instance Hittable Sphere where
           t <- if d >= 0 then Just ((- b - sqrt d) / a) else Nothing
           guard (tmin <= t && t <= tmax)
           let point = ray `at` t
-              normal = unit (point `minus` center)
-          pure $ Hit {hitPoint = point, hitNormal = normal, hitAt = t}
+              outwardNormal = unit (point `minus` center)
+              isFront = dir `dot` outwardNormal < 0
+          pure $
+            Hit
+              { hitPoint = point,
+                hitNormal = if isFront then outwardNormal else neg outwardNormal,
+                hitFront = isFront,
+                hitAt = t
+              }
