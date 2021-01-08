@@ -1,20 +1,21 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Lib (render, defaultImageConfig, defaultViewportConfig) where
+module Lib (render, defaultImageConfig, defaultViewportConfig, defaultRenderConfig) where
 
-import safe Color (RGB, rgbInt)
-import safe Data.Ratio ((%))
-import safe Hittable
+import Color (RGB, rgbInt)
+import Data.RVar
+import Data.Random
+import Data.Ratio ((%))
+import Hittable
   ( Hit (Hit, hitAt, hitNormal, hitPoint),
     Hittable,
     hit,
   )
-import safe PPM (PPM (PPM))
-import safe Ray (Ray (Ray))
-import safe System.IO (hPutStr)
-import safe Text.Printf (printf)
-import safe Vec (R3 (R3), cdiv, ctimes, minus, plus, unit)
+import PPM (PPM (PPM))
+import Ray (Ray (Ray))
+import System.Random
+import Vec (R3 (R3), cdiv, ctimes, minus, plus, unit, vmean)
 
 data ImageConfig = ImageConfig
   { imWidth :: Int,
@@ -46,6 +47,11 @@ defaultViewportConfig ic =
           vertical = R3 0 height 0
         }
 
+data RenderConfig = RenderConfig {numAntialiasingSamples :: Int}
+
+defaultRenderConfig :: RenderConfig
+defaultRenderConfig = RenderConfig {numAntialiasingSamples = 30}
+
 viewportWidth :: ImageConfig -> ViewportConfig -> Double
 viewportWidth ic ViewportConfig {..} = realToFrac (aspectRatio ic) * viewportHeight
 
@@ -63,20 +69,25 @@ rayColor world ray@(Ray _ dir) =
            in R3 (u + 1) (v + 1) (w + 1) `ctimes` 0.5
         Nothing -> (R3 1 1 1 `ctimes` (1.0 - s)) `plus` (R3 0.5 0.7 1.0 `ctimes` s)
 
-render :: Hittable a => ImageConfig -> ViewportConfig -> a -> IO PPM
-render ImageConfig {..} vp@ViewportConfig {..} world =
+render :: Hittable a => ImageConfig -> ViewportConfig -> RenderConfig -> a -> IO PPM
+render ImageConfig {..} vp@ViewportConfig {..} RenderConfig {..} world =
   let cmax = 255
       rows = forM (reverse [1 .. imHeight]) $ \r -> do
-        hPutStr stderr $ printf "\rProgress: %d/%d" r imHeight
         forM [1 .. imWidth] $ \c ->
-          let u = fromIntegral c / fromIntegral imWidth
-              v = fromIntegral r / fromIntegral imHeight
-           in pure . rgbInt cmax . rayColor world $
-                Ray
-                  origin
-                  ( lowerLeftCorner vp
-                      `plus` (horizontal `ctimes` u)
-                      `plus` (vertical `ctimes` v)
-                      `minus` origin
-                  )
+          let color = do
+                dx <- stdUniform
+                dy <- stdUniform
+                let u = (fromIntegral c + dx) / fromIntegral (imWidth - 1)
+                    v = (fromIntegral r + dy) / fromIntegral (imHeight - 1)
+                pure . rayColor world $
+                  Ray
+                    origin
+                    ( lowerLeftCorner vp
+                        `plus` (horizontal `ctimes` u)
+                        `plus` (vertical `ctimes` v)
+                        `minus` origin
+                    )
+              colors = replicateM numAntialiasingSamples color
+              colorSamples = evalState (sampleRVar colors) $ mkStdGen 137
+           in pure . rgbInt cmax . vmean $ colorSamples
    in PPM imWidth imHeight cmax <$> rows

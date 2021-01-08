@@ -1,7 +1,9 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Vec (R3 (R3), cross, cdiv, ctimes, dot, minus, neg, norm2, plus, unit) where
+module Vec (R3 (R3), cross, cdiv, ctimes, dot, vmean, minus, neg, norm2, plus, unit) where
+
+import Data.List (foldl1')
 
 data R3 a where
   R3 :: Real a => a -> a -> a -> R3 a
@@ -36,3 +38,9 @@ cross (R3 x1 y1 z1) (R3 x2 y2 z2) =
 
 unit :: Floating a => R3 a -> R3 a
 unit u = u `cdiv` norm u
+
+vsum :: [R3 a] -> R3 a
+vsum = foldl1' plus
+
+vmean :: Fractional a => [R3 a] -> R3 a
+vmean xs = vsum xs `cdiv` fromIntegral (length xs)

@@ -1,13 +1,14 @@
 module Main (main) where
 
-import safe Hittable (Sphere (..))
-import safe Lib
+import Hittable (Sphere (..))
+import Lib
   ( defaultImageConfig,
+    defaultRenderConfig,
     defaultViewportConfig,
     render,
   )
-import safe PPM (encodeP3)
-import safe Vec (R3 (..))
+import PPM (encodeP3)
+import Vec (R3 (..))
 
 main :: IO ()
 main = do
@@ -15,5 +16,10 @@ main = do
         [ Sphere {spCenter = R3 0 0 (-1), spRadius = 0.5},
           Sphere {spCenter = R3 0 (-100.5) (-1), spRadius = 100}
         ]
-  image <- render defaultImageConfig (defaultViewportConfig defaultImageConfig) world
+  image <-
+    render
+      defaultImageConfig
+      (defaultViewportConfig defaultImageConfig)
+      defaultRenderConfig
+      world
   putTextLn $ encodeP3 image

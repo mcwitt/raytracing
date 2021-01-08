@@ -22,10 +22,7 @@ extra-source-files: CHANGELOG.md
 
 common shared-properties
   default-language:   Haskell2010
-  default-extensions:
-    DerivingStrategies
-    Safe
-
+  default-extensions: DerivingStrategies
   build-depends:
     , base    ^>=4.14
     , relude  ^>=0.7.0.0
@@ -39,7 +36,7 @@ common shared-properties
     -Wno-missing-import-lists -Wno-missed-specialisations
     -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe
     -Wno-missing-local-signatures -Wno-monomorphism-restriction
-    -Wno-implicit-prelude
+    -Wno-implicit-prelude -Wno-missing-safe-haskell-mode
 
 library
   import:          shared-properties
@@ -52,11 +49,13 @@ library
     Ray
     Vec
 
+  build-depends:
+    , random     ^>=1.2.0
+    , random-fu  ^>=0.2.7
+    , rvar       ^>=0.2.0
+
 executable raytracing
   import:         shared-properties
   hs-source-dirs: app
   main-is:        Main.hs
-  build-depends:
-    , base        ^>=4.14
-    , raytracing
-    , relude      ^>=0.7.0.0
+  build-depends:  raytracing
