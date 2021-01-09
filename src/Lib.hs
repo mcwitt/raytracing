@@ -15,7 +15,7 @@ import Hittable
   )
 import PPM (PPM (PPM))
 import Ray (Ray (Ray))
-import Vec (R3 (R3), cdiv, ctimes, minus, norm2, plus, unit, vmean)
+import Vec (R3 (R3), cdiv, ctimes, minus, norm2, plus, unit, vmap, vmean)
 
 data ImageConfig = ImageConfig
   { imWidth :: Int,
@@ -110,5 +110,5 @@ render ImageConfig {..} vp@ViewportConfig {..} RenderConfig {..} world =
                         `minus` origin
                     )
               colors = replicateM renderSamples color
-          rgbInt cmax . vmean <$> sampleRVar colors
+          rgbInt cmax . vmap sqrt . vmean <$> sampleRVar colors
    in PPM imWidth imHeight cmax <$> rows

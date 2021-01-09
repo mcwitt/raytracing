@@ -1,7 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Vec (R3 (R3), cross, cdiv, ctimes, dot, vmean, minus, neg, norm2, plus, unit) where
+module Vec (R3 (R3), cross, cdiv, ctimes, dot, vmean, minus, neg, norm2, plus, timesc, unit, vmap) where
 
 import Data.List (foldl1')
 
@@ -17,11 +17,20 @@ plus, minus :: R3 a -> R3 a -> R3 a
 plus (R3 x1 y1 z1) (R3 x2 y2 z2) = R3 (x1 + x2) (y1 + y2) (z1 + z2)
 minus u v = u `plus` neg v
 
-ctimes :: R3 a -> a -> R3 a
-ctimes (R3 x y z) c = R3 (c * x) (c * y) (c * z)
+vmap :: (a -> a) -> R3 a -> R3 a
+vmap f (R3 x y z) = R3 (f x) (f y) (f z)
+
+timesc :: Num a => a -> R3 a -> R3 a
+timesc c = vmap (c *)
+
+ctimes :: Num a => R3 a -> a -> R3 a
+ctimes = flip timesc
+
+divc :: Fractional a => a -> R3 a -> R3 a
+divc c = vmap (/ c)
 
 cdiv :: Fractional a => R3 a -> a -> R3 a
-cdiv u c = ctimes u (1 / c)
+cdiv = flip divc
 
 dot :: R3 a -> R3 a -> a
 dot (R3 x1 y1 z1) (R3 x2 y2 z2) = x1 * x2 + y1 * y2 + z1 * z2
