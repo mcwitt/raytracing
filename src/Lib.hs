@@ -50,7 +50,8 @@ defaultViewportConfig ic =
 data RenderConfig = RenderConfig
   { renderSamples :: Int,
     renderBackground :: Ray -> RGB,
-    renderSeed :: Int
+    renderSeed :: Int,
+    renderMaxChildRays :: Int
   }
 
 defaultRenderConfig :: RenderConfig
@@ -61,7 +62,8 @@ defaultRenderConfig =
         let R3 _ y _ = unit dir
             s = 0.5 * (y + 1.0)
          in (R3 1 1 1 `ctimes` (1.0 - s)) `plus` (R3 0.5 0.7 1.0 `ctimes` s),
-      renderSeed = 137
+      renderSeed = 137,
+      renderMaxChildRays = 50
     }
 
 viewportWidth :: ImageConfig -> ViewportConfig -> Double
@@ -77,15 +79,17 @@ uniformInUnitBall =
       u = R3 <$> r <*> r <*> r
    in iterateUntil ((< 1) . norm2) u
 
-rayColor :: Hittable a => a -> (Ray -> RGB) -> Ray -> RVar RGB
-rayColor world background ray =
-  case hit ray 0 1000 world of
-    Just Hit {..} -> do
-      r <- uniformInUnitBall
-      let scatterDirection = hitNormal `plus` r
-      color <- rayColor world background $ Ray hitPoint scatterDirection
-      pure $ color `ctimes` 0.5
-    Nothing -> pure $ background ray
+rayColor :: Hittable a => a -> (Ray -> RGB) -> Int -> Ray -> RVar RGB
+rayColor world background = go
+  where
+    go 0 _ = pure $ R3 0 0 0
+    go n ray = case hit ray 0 1000 world of
+      Just Hit {..} -> do
+        r <- uniformInUnitBall
+        let scatterDirection = hitNormal `plus` r
+        color <- go (n - 1) $ Ray hitPoint scatterDirection
+        pure $ color `ctimes` 0.5
+      _ -> pure $ background ray
 
 render :: Hittable a => ImageConfig -> ViewportConfig -> RenderConfig -> a -> IO PPM
 render ImageConfig {..} vp@ViewportConfig {..} RenderConfig {..} world =
@@ -97,7 +101,7 @@ render ImageConfig {..} vp@ViewportConfig {..} RenderConfig {..} world =
                 dy <- stdUniform
                 let u = (fromIntegral c + dx) / fromIntegral (imWidth - 1)
                     v = (fromIntegral r + dy) / fromIntegral (imHeight - 1)
-                rayColor world renderBackground $
+                rayColor world renderBackground renderMaxChildRays $
                   Ray
                     origin
                     ( lowerLeftCorner vp
