@@ -50,9 +50,10 @@ library
     Vec
 
   build-depends:
-    , random     ^>=1.2.0
-    , random-fu  ^>=0.2.7
-    , rvar       ^>=0.2.0
+    , monad-loops  ^>=0.4.3
+    , random       ^>=1.2.0
+    , random-fu    ^>=0.2.7
+    , rvar         ^>=0.2.0
 
 executable raytracing
   import:         shared-properties

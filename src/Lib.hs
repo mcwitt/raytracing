@@ -4,8 +4,9 @@
 module Lib (render, defaultImageConfig, defaultViewportConfig, defaultRenderConfig) where
 
 import Color (RGB, rgbInt)
-import Data.RVar
-import Data.Random
+import Control.Monad.Loops (iterateUntil)
+import Data.RVar (RVar, sampleRVar)
+import Data.Random (stdUniform, uniform)
 import Data.Ratio ((%))
 import Hittable
   ( Hit (Hit, hitAt, hitNormal, hitPoint),
@@ -14,8 +15,7 @@ import Hittable
   )
 import PPM (PPM (PPM))
 import Ray (Ray (Ray))
-import System.Random
-import Vec (R3 (R3), cdiv, ctimes, minus, plus, unit, vmean)
+import Vec (R3 (R3), cdiv, ctimes, minus, norm2, plus, unit, vmean)
 
 data ImageConfig = ImageConfig
   { imWidth :: Int,
@@ -26,7 +26,7 @@ aspectRatio :: ImageConfig -> Ratio Int
 aspectRatio (ImageConfig w h) = w % h
 
 defaultImageConfig :: ImageConfig
-defaultImageConfig = ImageConfig {imWidth = 800, imHeight = 450}
+defaultImageConfig = ImageConfig {imWidth = 400, imHeight = 225}
 
 data ViewportConfig = ViewportConfig
   { viewportHeight :: Double,
@@ -48,7 +48,7 @@ defaultViewportConfig ic =
         }
 
 data RenderConfig = RenderConfig
-  { numAntialiasingSamples :: Int,
+  { renderSamples :: Int,
     renderBackground :: Ray -> RGB,
     renderSeed :: Int
   }
@@ -56,7 +56,7 @@ data RenderConfig = RenderConfig
 defaultRenderConfig :: RenderConfig
 defaultRenderConfig =
   RenderConfig
-    { numAntialiasingSamples = 30,
+    { renderSamples = 30,
       renderBackground = \(Ray _ dir) ->
         let R3 _ y _ = unit dir
             s = 0.5 * (y + 1.0)
@@ -71,25 +71,33 @@ lowerLeftCorner :: ViewportConfig -> R3 Double
 lowerLeftCorner ViewportConfig {..} =
   origin `minus` (horizontal `cdiv` 2) `minus` (vertical `cdiv` 2) `minus` R3 0 0 focalLength
 
-rayColor :: Hittable a => a -> (Ray -> RGB) -> Ray -> RGB
+uniformInUnitBall :: RVar (R3 Double)
+uniformInUnitBall =
+  let r = uniform (-1) 1
+      u = R3 <$> r <*> r <*> r
+   in iterateUntil ((< 1) . norm2) u
+
+rayColor :: Hittable a => a -> (Ray -> RGB) -> Ray -> RVar RGB
 rayColor world background ray =
   case hit ray 0 1000 world of
-    Just Hit {..} ->
-      let R3 u v w = hitNormal
-       in R3 (u + 1) (v + 1) (w + 1) `ctimes` 0.5
-    Nothing -> background ray
+    Just Hit {..} -> do
+      r <- uniformInUnitBall
+      let scatterDirection = hitNormal `plus` r
+      color <- rayColor world background $ Ray hitPoint scatterDirection
+      pure $ color `ctimes` 0.5
+    Nothing -> pure $ background ray
 
 render :: Hittable a => ImageConfig -> ViewportConfig -> RenderConfig -> a -> IO PPM
 render ImageConfig {..} vp@ViewportConfig {..} RenderConfig {..} world =
   let cmax = 255
       rows = forM (reverse [1 .. imHeight]) $ \r -> do
-        forM [1 .. imWidth] $ \c ->
+        forM [1 .. imWidth] $ \c -> do
           let color = do
                 dx <- stdUniform
                 dy <- stdUniform
                 let u = (fromIntegral c + dx) / fromIntegral (imWidth - 1)
                     v = (fromIntegral r + dy) / fromIntegral (imHeight - 1)
-                pure . rayColor world renderBackground $
+                rayColor world renderBackground $
                   Ray
                     origin
                     ( lowerLeftCorner vp
@@ -97,7 +105,6 @@ render ImageConfig {..} vp@ViewportConfig {..} RenderConfig {..} world =
                         `plus` (vertical `ctimes` v)
                         `minus` origin
                     )
-              colors = replicateM numAntialiasingSamples color
-              colorSamples = evalState (sampleRVar colors) $ mkStdGen renderSeed
-           in pure . rgbInt cmax . vmean $ colorSamples
+              colors = replicateM renderSamples color
+          rgbInt cmax . vmean <$> sampleRVar colors
    in PPM imWidth imHeight cmax <$> rows
