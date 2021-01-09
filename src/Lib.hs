@@ -47,10 +47,22 @@ defaultViewportConfig ic =
           vertical = R3 0 height 0
         }
 
-data RenderConfig = RenderConfig {numAntialiasingSamples :: Int}
+data RenderConfig = RenderConfig
+  { numAntialiasingSamples :: Int,
+    renderBackground :: Ray -> RGB,
+    renderSeed :: Int
+  }
 
 defaultRenderConfig :: RenderConfig
-defaultRenderConfig = RenderConfig {numAntialiasingSamples = 30}
+defaultRenderConfig =
+  RenderConfig
+    { numAntialiasingSamples = 30,
+      renderBackground = \(Ray _ dir) ->
+        let R3 _ y _ = unit dir
+            s = 0.5 * (y + 1.0)
+         in (R3 1 1 1 `ctimes` (1.0 - s)) `plus` (R3 0.5 0.7 1.0 `ctimes` s),
+      renderSeed = 137
+    }
 
 viewportWidth :: ImageConfig -> ViewportConfig -> Double
 viewportWidth ic ViewportConfig {..} = realToFrac (aspectRatio ic) * viewportHeight
@@ -59,15 +71,13 @@ lowerLeftCorner :: ViewportConfig -> R3 Double
 lowerLeftCorner ViewportConfig {..} =
   origin `minus` (horizontal `cdiv` 2) `minus` (vertical `cdiv` 2) `minus` R3 0 0 focalLength
 
-rayColor :: Hittable a => a -> Ray -> RGB
-rayColor world ray@(Ray _ dir) =
-  let R3 _ y _ = unit dir
-      s = 0.5 * (y + 1.0)
-   in case hit ray 0 1000 world of
-        Just Hit {..} ->
-          let R3 u v w = hitNormal
-           in R3 (u + 1) (v + 1) (w + 1) `ctimes` 0.5
-        Nothing -> (R3 1 1 1 `ctimes` (1.0 - s)) `plus` (R3 0.5 0.7 1.0 `ctimes` s)
+rayColor :: Hittable a => a -> (Ray -> RGB) -> Ray -> RGB
+rayColor world background ray =
+  case hit ray 0 1000 world of
+    Just Hit {..} ->
+      let R3 u v w = hitNormal
+       in R3 (u + 1) (v + 1) (w + 1) `ctimes` 0.5
+    Nothing -> background ray
 
 render :: Hittable a => ImageConfig -> ViewportConfig -> RenderConfig -> a -> IO PPM
 render ImageConfig {..} vp@ViewportConfig {..} RenderConfig {..} world =
@@ -79,7 +89,7 @@ render ImageConfig {..} vp@ViewportConfig {..} RenderConfig {..} world =
                 dy <- stdUniform
                 let u = (fromIntegral c + dx) / fromIntegral (imWidth - 1)
                     v = (fromIntegral r + dy) / fromIntegral (imHeight - 1)
-                pure . rayColor world $
+                pure . rayColor world renderBackground $
                   Ray
                     origin
                     ( lowerLeftCorner vp
@@ -88,6 +98,6 @@ render ImageConfig {..} vp@ViewportConfig {..} RenderConfig {..} world =
                         `minus` origin
                     )
               colors = replicateM numAntialiasingSamples color
-              colorSamples = evalState (sampleRVar colors) $ mkStdGen 137
+              colorSamples = evalState (sampleRVar colors) $ mkStdGen renderSeed
            in pure . rgbInt cmax . vmean $ colorSamples
    in PPM imWidth imHeight cmax <$> rows
