@@ -83,7 +83,7 @@ rayColor :: Hittable a => a -> (Ray -> RGB) -> Int -> Ray -> RVar RGB
 rayColor world background = go
   where
     go 0 _ = pure $ R3 0 0 0
-    go n ray = case hit ray 0 1000 world of
+    go n ray = case hit ray 1e-3 1e3 world of
       Just Hit {..} -> do
         r <- uniformInUnitBall
         let scatterDirection = hitNormal `plus` r
