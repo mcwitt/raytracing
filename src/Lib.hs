@@ -79,13 +79,16 @@ uniformInUnitBall =
       u = R3 <$> r <*> r <*> r
    in iterateUntil ((< 1) . norm2) u
 
+uniformOnUnitSphere :: RVar (R3 Double)
+uniformOnUnitSphere = unit <$> uniformInUnitBall
+
 rayColor :: Hittable a => a -> (Ray -> RGB) -> Int -> Ray -> RVar RGB
 rayColor world background = go
   where
     go 0 _ = pure $ R3 0 0 0
     go n ray = case hit ray 1e-3 1e3 world of
       Just Hit {..} -> do
-        r <- uniformInUnitBall
+        r <- uniformOnUnitSphere
         let scatterDirection = hitNormal `plus` r
         color <- go (n - 1) $ Ray hitPoint scatterDirection
         pure $ color `ctimes` 0.5
