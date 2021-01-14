@@ -1,5 +1,14 @@
-module Hittable (Hit (..), Hittable, Sphere (..), hit) where
+{-# LANGUAGE RecordWildCards #-}
 
+module Hittable
+  ( Hit (..),
+    Hittable,
+    Sphere (..),
+    hit,
+  )
+where
+
+import Material (Material)
 import Ray (Ray (Ray), at)
 import Safe (minimumByMay)
 import Vec (R3, dot, minus, neg, norm2, unit)
@@ -8,7 +17,8 @@ data Hit = Hit
   { hitPoint :: R3 Double,
     hitNormal :: R3 Double,
     hitFront :: Bool,
-    hitAt :: Double
+    hitAt :: Double,
+    hitMaterial :: Material
   }
 
 class Hittable a where
@@ -16,28 +26,30 @@ class Hittable a where
 
 data Sphere = Sphere
   { spCenter :: R3 Double,
-    spRadius :: Double
+    spRadius :: Double,
+    spMaterial :: Material
   }
 
 instance Hittable Sphere where
-  hit ray@(Ray orig dir) tmin tmax (Sphere center radius) =
-    let oc = orig `minus` center
+  hit ray@(Ray orig dir) tmin tmax Sphere {..} =
+    let oc = orig `minus` spCenter
         a = norm2 dir
         b = oc `dot` dir
-        c = norm2 oc - radius ** 2
+        c = norm2 oc - spRadius ** 2
         d = b ** 2 - a * c
      in do
           t <- if d >= 0 then Just ((- b - sqrt d) / a) else Nothing
           guard (tmin <= t && t <= tmax)
           let point = ray `at` t
-              outwardNormal = unit (point `minus` center)
+              outwardNormal = unit (point `minus` spCenter)
               isFront = dir `dot` outwardNormal < 0
           pure $
             Hit
               { hitPoint = point,
                 hitNormal = if isFront then outwardNormal else neg outwardNormal,
                 hitFront = isFront,
-                hitAt = t
+                hitAt = t,
+                hitMaterial = spMaterial
               }
 
 instance Hittable a => Hittable [a] where

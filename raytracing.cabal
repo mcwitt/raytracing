@@ -45,6 +45,7 @@ library
     Color
     Hittable
     Lib
+    Material
     PPM
     Ray
     Vec

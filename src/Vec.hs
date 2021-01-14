@@ -1,7 +1,23 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Vec (R3 (R3), cross, cdiv, ctimes, dot, vmean, minus, neg, norm2, plus, timesc, unit, vmap) where
+module Vec
+  ( R3 (R3),
+    cross,
+    cdiv,
+    ctimes,
+    dot,
+    vmean,
+    minus,
+    nearZero,
+    neg,
+    norm2,
+    plus,
+    timesc,
+    unit,
+    vmap,
+  )
+where
 
 import Data.List (foldl1')
 
@@ -19,6 +35,9 @@ minus u v = u `plus` neg v
 
 vmap :: (a -> a) -> R3 a -> R3 a
 vmap f (R3 x y z) = R3 (f x) (f y) (f z)
+
+vfoldMap :: Monoid m => (a -> m) -> R3 a -> m
+vfoldMap f (R3 x y z) = f x <> f y <> f z
 
 timesc :: Num a => a -> R3 a -> R3 a
 timesc c = vmap (c *)
@@ -53,3 +72,6 @@ vsum = foldl1' plus
 
 vmean :: Fractional a => [R3 a] -> R3 a
 vmean xs = vsum xs `cdiv` fromIntegral (length xs)
+
+nearZero :: Double -> R3 Double -> Bool
+nearZero eps = getAll . vfoldMap (All . (< eps) . abs)

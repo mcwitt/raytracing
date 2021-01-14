@@ -4,18 +4,14 @@
 module Lib (render, defaultImageConfig, defaultViewportConfig, defaultRenderConfig) where
 
 import Color (RGB, rgbInt)
-import Control.Monad.Loops (iterateUntil)
 import Data.RVar (RVar, sampleRVar)
-import Data.Random (stdUniform, uniform)
+import Data.Random (stdUniform)
 import Data.Ratio ((%))
-import Hittable
-  ( Hit (Hit, hitAt, hitNormal, hitPoint),
-    Hittable,
-    hit,
-  )
-import PPM (PPM (PPM))
+import Hittable (Hit (..), Hittable, hit)
+import Material (Material (..), Scattered (..))
+import PPM (PPM (..))
 import Ray (Ray (Ray))
-import Vec (R3 (R3), cdiv, ctimes, minus, norm2, plus, unit, vmap, vmean)
+import Vec (R3 (..), cdiv, ctimes, minus, plus, unit, vmap, vmean)
 
 data ImageConfig = ImageConfig
   { imWidth :: Int,
@@ -73,26 +69,18 @@ lowerLeftCorner :: ViewportConfig -> R3 Double
 lowerLeftCorner ViewportConfig {..} =
   origin `minus` (horizontal `cdiv` 2) `minus` (vertical `cdiv` 2) `minus` R3 0 0 focalLength
 
-uniformInUnitBall :: RVar (R3 Double)
-uniformInUnitBall =
-  let r = uniform (-1) 1
-      u = R3 <$> r <*> r <*> r
-   in iterateUntil ((< 1) . norm2) u
-
-uniformOnUnitSphere :: RVar (R3 Double)
-uniformOnUnitSphere = unit <$> uniformInUnitBall
-
 rayColor :: Hittable a => a -> (Ray -> RGB) -> Int -> Ray -> RVar RGB
 rayColor world background = go
   where
     go 0 _ = pure $ R3 0 0 0
-    go n ray = case hit ray 1e-3 1e3 world of
+    go n ray = case hit ray eps infinity world of
       Just Hit {..} -> do
-        r <- uniformOnUnitSphere
-        let scatterDirection = hitNormal `plus` r
-        color <- go (n - 1) $ Ray hitPoint scatterDirection
-        pure $ color `ctimes` 0.5
+        Scattered attenuation scatteredRay <- scatter hitMaterial ray hitPoint hitNormal
+        color <- go (n - 1) scatteredRay
+        pure $ color `ctimes` attenuation
       _ -> pure $ background ray
+    eps = 1e-9
+    infinity = 1e9
 
 render :: Hittable a => ImageConfig -> ViewportConfig -> RenderConfig -> a -> IO PPM
 render ImageConfig {..} vp@ViewportConfig {..} RenderConfig {..} world =
