@@ -10,8 +10,18 @@ import Data.Ratio ((%))
 import Hittable (Hit (..), Hittable, hit)
 import Material (Material (..), Scattered (..))
 import PPM (PPM (..))
-import Ray (Ray (Ray))
-import Vec (R3 (..), cdiv, ctimes, minus, plus, unit, vmap, vmean)
+import Ray (Ray (Ray, rayDir))
+import Vec
+  ( R3 (..),
+    divc,
+    minus,
+    plus,
+    times,
+    timesc,
+    unit,
+    vmap,
+    vmean,
+  )
 
 data ImageConfig = ImageConfig
   { imWidth :: Int,
@@ -57,7 +67,7 @@ defaultRenderConfig =
       renderBackground = \(Ray _ dir) ->
         let R3 _ y _ = unit dir
             s = 0.5 * (y + 1.0)
-         in (R3 1 1 1 `ctimes` (1.0 - s)) `plus` (R3 0.5 0.7 1.0 `ctimes` s),
+         in (R3 1 1 1 `timesc` (1.0 - s)) `plus` (R3 0.5 0.7 1.0 `timesc` s),
       renderSeed = 137,
       renderMaxChildRays = 50
     }
@@ -67,7 +77,7 @@ viewportWidth ic ViewportConfig {..} = realToFrac (aspectRatio ic) * viewportHei
 
 lowerLeftCorner :: ViewportConfig -> R3 Double
 lowerLeftCorner ViewportConfig {..} =
-  origin `minus` (horizontal `cdiv` 2) `minus` (vertical `cdiv` 2) `minus` R3 0 0 focalLength
+  origin `minus` (horizontal `divc` 2) `minus` (vertical `divc` 2) `minus` R3 0 0 focalLength
 
 rayColor :: Hittable a => a -> (Ray -> RGB) -> Int -> Ray -> RVar RGB
 rayColor world background = go
@@ -75,9 +85,9 @@ rayColor world background = go
     go 0 _ = pure $ R3 0 0 0
     go n ray = case hit ray eps infinity world of
       Just Hit {..} -> do
-        Scattered attenuation scatteredRay <- scatter hitMaterial ray hitPoint hitNormal
+        Scattered attenuation scatteredRay <- scatter hitMaterial (rayDir ray) hitPoint hitNormal
         color <- go (n - 1) scatteredRay
-        pure $ color `ctimes` attenuation
+        pure $ color `times` attenuation
       _ -> pure $ background ray
     eps = 1e-9
     infinity = 1e9
@@ -96,8 +106,8 @@ render ImageConfig {..} vp@ViewportConfig {..} RenderConfig {..} world =
                   Ray
                     origin
                     ( lowerLeftCorner vp
-                        `plus` (horizontal `ctimes` u)
-                        `plus` (vertical `ctimes` v)
+                        `plus` (horizontal `timesc` u)
+                        `plus` (vertical `timesc` v)
                         `minus` origin
                     )
               colors = replicateM renderSamples color
