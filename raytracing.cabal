@@ -54,6 +54,7 @@ library
     , random       ^>=1.2.0
     , random-fu    ^>=0.2.7
     , rvar         ^>=0.2.0
+    , safe         ^>=0.3.19
 
 executable raytracing
   import:         shared-properties

@@ -1,6 +1,7 @@
 module Hittable (Hit (..), Hittable, Sphere (..), hit) where
 
 import Ray (Ray (Ray), at)
+import Safe (minimumByMay)
 import Vec (R3, dot, minus, neg, norm2, unit)
 
 data Hit = Hit
@@ -40,4 +41,7 @@ instance Hittable Sphere where
               }
 
 instance Hittable a => Hittable [a] where
-  hit ray tmin tmax = getAlt . foldMap (Alt . hit ray tmin tmax)
+  hit ray tmin tmax xs =
+    let hits = mapMaybe (hit ray tmin tmax) xs
+        closestHit = minimumByMay (comparing hitAt) hits
+     in closestHit
