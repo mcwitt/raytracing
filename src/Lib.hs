@@ -1,7 +1,16 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Lib (render, defaultImageConfig, defaultViewportConfig, defaultRenderConfig) where
+module Lib
+  ( ImageConfig (..),
+    RenderConfig (..),
+    ViewportConfig (..),
+    render,
+    defaultImageConfig,
+    defaultViewportConfig,
+    defaultRenderConfig,
+  )
+where
 
 import Color (RGB, rgbInt)
 import Data.RVar (RVar, sampleRVar)

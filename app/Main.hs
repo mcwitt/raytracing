@@ -2,7 +2,8 @@ module Main (main) where
 
 import Hittable (Sphere (..))
 import Lib
-  ( defaultImageConfig,
+  ( ImageConfig (..),
+    defaultImageConfig,
     defaultRenderConfig,
     defaultViewportConfig,
     render,
@@ -27,18 +28,19 @@ main = do
           Sphere
             { spCenter = R3 (-1) 0 (-1),
               spRadius = 0.5,
-              spMaterial = metal $ R3 0.8 0.8 0.8
+              spMaterial = metal 0.3 $ R3 0.8 0.8 0.8
             },
           Sphere
             { spCenter = R3 1 0 (-1),
               spRadius = 0.5,
-              spMaterial = metal $ R3 0.8 0.6 0.2
+              spMaterial = metal 1.0 $ R3 0.8 0.6 0.2
             }
         ]
+  let imageConfig = defaultImageConfig {imWidth = 800, imHeight = 450}
   image <-
     render
-      defaultImageConfig
-      (defaultViewportConfig defaultImageConfig)
+      imageConfig
+      (defaultViewportConfig imageConfig)
       defaultRenderConfig
       world
   putTextLn $ encodeP3 image

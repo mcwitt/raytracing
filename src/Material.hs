@@ -48,10 +48,11 @@ lambertian albedo = Material $ \_ point normal -> do
       scatteredRay = Ray point scatterDirFixed
   pure $ Scattered albedo scatteredRay
 
-metal :: RGB -> Material
-metal albedo = Material $ \rayDir point normal ->
+metal :: Double -> RGB -> Material
+metal fuzz albedo = Material $ \rayDir point normal -> do
   let scatterDir = reflect (unit rayDir) normal
-      scatteredRay = Ray point scatterDir
-   in pure $ Scattered albedo scatteredRay
+  r <- uniformInUnitBall
+  let scatteredRay = Ray point (scatterDir `plus` (fuzz `ctimes` r))
+  pure $ Scattered albedo scatteredRay
   where
     reflect v n = v `minus` ((2 * v `dot` n) `ctimes` n)
