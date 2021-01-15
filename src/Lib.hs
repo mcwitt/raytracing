@@ -20,6 +20,8 @@ import Hittable (Hit (..), Hittable, hit)
 import Material (Material (..), Scattered (..))
 import PPM (PPM (..))
 import Ray (Ray (Ray, rayDir))
+import System.IO (hPutStr)
+import Text.Printf (printf)
 import Vec
   ( R3 (..),
     divc,
@@ -106,6 +108,7 @@ render ImageConfig {..} vp@ViewportConfig {..} RenderConfig {..} world =
   let cmax = 255
       rows = forM (reverse [1 .. imHeight]) $ \r -> do
         forM [1 .. imWidth] $ \c -> do
+          hPutStr stderr $ printf "\rProgress: %d/%d" (imHeight - r + 1) imHeight
           let color = do
                 dx <- stdUniform
                 dy <- stdUniform
