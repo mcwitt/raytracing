@@ -8,7 +8,7 @@ import Lib
     defaultViewportConfig,
     render,
   )
-import Material (lambertian, metal)
+import Material (dielectric, lambertian, metal)
 import PPM (encodeP3)
 import Vec (R3 (..))
 
@@ -23,12 +23,12 @@ main = do
           Sphere
             { spCenter = R3 0 0 (-1),
               spRadius = 0.5,
-              spMaterial = lambertian $ R3 0.7 0.3 0.3
+              spMaterial = dielectric 1.5
             },
           Sphere
             { spCenter = R3 (-1) 0 (-1),
               spRadius = 0.5,
-              spMaterial = metal 0.3 $ R3 0.8 0.8 0.8
+              spMaterial = dielectric 1.5
             },
           Sphere
             { spCenter = R3 1 0 (-1),

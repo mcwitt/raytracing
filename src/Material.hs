@@ -1,6 +1,8 @@
 module Material
   ( Material (..),
     Scattered (..),
+    Side (..),
+    dielectric,
     lambertian,
     metal,
   )
@@ -27,8 +29,10 @@ data Scattered = Scattered
     scattered :: Ray
   }
 
+data Side = Front | Back
+
 newtype Material = Material
-  { scatter :: RGB -> R3 Double -> R3 Double -> RVar Scattered
+  { scatter :: RGB -> R3 Double -> R3 Double -> Side -> RVar Scattered
   }
 
 uniformInUnitBall :: RVar (R3 Double)
@@ -41,7 +45,7 @@ uniformOnUnitSphere :: RVar (R3 Double)
 uniformOnUnitSphere = unit <$> uniformInUnitBall
 
 lambertian :: RGB -> Material
-lambertian albedo = Material $ \_ point normal -> do
+lambertian albedo = Material $ \_ point normal _ -> do
   r <- uniformOnUnitSphere
   let scatterDir = normal `plus` r
       scatterDirFixed = if not $ nearZero 1e-8 scatterDir then scatterDir else normal
@@ -49,10 +53,24 @@ lambertian albedo = Material $ \_ point normal -> do
   pure $ Scattered albedo scatteredRay
 
 metal :: Double -> RGB -> Material
-metal fuzz albedo = Material $ \rayDir point normal -> do
-  let scatterDir = reflect (unit rayDir) normal
+metal fuzz albedo = Material $ \rayDir point normal _ -> do
+  let reflected = reflect (unit rayDir) normal
   r <- uniformInUnitBall
-  let scatteredRay = Ray point (scatterDir `plus` (fuzz `ctimes` r))
+  let scatteredRay = Ray point (reflected `plus` (fuzz `ctimes` r))
   pure $ Scattered albedo scatteredRay
   where
-    reflect v n = v `minus` ((2 * v `dot` n) `ctimes` n)
+    reflect u n = u `minus` ((2 * u `dot` n) `ctimes` n)
+
+dielectric :: Double -> Material
+dielectric ir = Material $ \rayDir point normal side ->
+  let ratio = case side of
+        Front -> 1.0 / ir
+        Back -> ir
+      scatteredRay = Ray point $ refract (unit rayDir) normal ratio
+   in pure $ Scattered (R3 1 1 1) scatteredRay
+  where
+    refract u n ratio =
+      let cosTheta = - u `dot` n
+          rperp = ratio `ctimes` (u `plus` (cosTheta `ctimes` n))
+          rpar = (- sqrt (abs (1 - norm2 rperp))) `ctimes` n
+       in rperp `plus` rpar

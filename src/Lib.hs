@@ -17,7 +17,7 @@ import Data.RVar (RVar, sampleRVar)
 import Data.Random (stdUniform)
 import Data.Ratio ((%))
 import Hittable (Hit (..), Hittable, hit)
-import Material (Material (..), Scattered (..))
+import Material
 import PPM (PPM (..))
 import Ray (Ray (Ray, rayDir))
 import System.IO (hPutStr)
@@ -96,7 +96,8 @@ rayColor world background = go
     go 0 _ = pure $ R3 0 0 0
     go n ray = case hit ray eps infinity world of
       Just Hit {..} -> do
-        Scattered attenuation scatteredRay <- scatter hitMaterial (rayDir ray) hitPoint hitNormal
+        Scattered attenuation scatteredRay <-
+          scatter hitMaterial (rayDir ray) hitPoint hitNormal hitSide
         color <- go (n - 1) scatteredRay
         pure $ color `times` attenuation
       _ -> pure $ background ray

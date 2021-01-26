@@ -8,7 +8,7 @@ module Hittable
   )
 where
 
-import Material (Material)
+import Material (Material, Side (..))
 import Ray (Ray (Ray), at)
 import Safe (minimumByMay)
 import Vec (R3, dot, minus, neg, norm2, unit)
@@ -16,7 +16,7 @@ import Vec (R3, dot, minus, neg, norm2, unit)
 data Hit = Hit
   { hitPoint :: R3 Double,
     hitNormal :: R3 Double,
-    hitFront :: Bool,
+    hitSide :: Side,
     hitAt :: Double,
     hitMaterial :: Material
   }
@@ -42,12 +42,14 @@ instance Hittable Sphere where
           guard (tmin <= t && t <= tmax)
           let point = ray `at` t
               outwardNormal = unit (point `minus` spCenter)
-              isFront = dir `dot` outwardNormal < 0
+              side = if dir `dot` outwardNormal < 0 then Front else Back
           pure $
             Hit
               { hitPoint = point,
-                hitNormal = if isFront then outwardNormal else neg outwardNormal,
-                hitFront = isFront,
+                hitNormal = case side of
+                  Front -> outwardNormal
+                  Back -> neg outwardNormal,
+                hitSide = side,
                 hitAt = t,
                 hitMaterial = spMaterial
               }
