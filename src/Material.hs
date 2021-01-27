@@ -58,19 +58,29 @@ metal fuzz albedo = Material $ \rayDir point normal _ -> do
   r <- uniformInUnitBall
   let scatteredRay = Ray point (reflected `plus` (fuzz `ctimes` r))
   pure $ Scattered albedo scatteredRay
-  where
-    reflect u n = u `minus` ((2 * u `dot` n) `ctimes` n)
 
 dielectric :: Double -> Material
 dielectric ir = Material $ \rayDir point normal side ->
   let ratio = case side of
         Front -> 1.0 / ir
         Back -> ir
-      scatteredRay = Ray point $ refract (unit rayDir) normal ratio
+      unitDir = unit rayDir
+      cosTheta = - unitDir `dot` normal
+      sinTheta = sqrt (1.0 - cosTheta ** 2)
+      cannotRefract = ratio * sinTheta > 1.0
+      newDir =
+        if cannotRefract
+          then reflect unitDir normal
+          else refract unitDir normal ratio
+      scatteredRay = Ray point newDir
    in pure $ Scattered (R3 1 1 1) scatteredRay
-  where
-    refract u n ratio =
-      let cosTheta = - u `dot` n
-          rperp = ratio `ctimes` (u `plus` (cosTheta `ctimes` n))
-          rpar = (- sqrt (abs (1 - norm2 rperp))) `ctimes` n
-       in rperp `plus` rpar
+
+reflect :: Num a => R3 a -> R3 a -> R3 a
+reflect u n = u `minus` ((2 * u `dot` n) `ctimes` n)
+
+refract :: Floating a => R3 a -> R3 a -> a -> R3 a
+refract u n ratio =
+  let cosTheta = - u `dot` n
+      rperp = ratio `ctimes` (u `plus` (cosTheta `ctimes` n))
+      rpar = (- sqrt (abs (1 - norm2 rperp))) `ctimes` n
+   in rperp `plus` rpar
