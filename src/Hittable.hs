@@ -11,11 +11,11 @@ where
 import Material (Material, Side (..))
 import Ray (Ray (Ray), at)
 import Safe (minimumByMay)
-import Vec (R3, dot, minus, neg, norm2, unit)
+import Vec (R3, Unit (..), dot, minus, negUnit, norm2, unit)
 
 data Hit = Hit
   { hitPoint :: R3 Double,
-    hitNormal :: R3 Double,
+    hitNormal :: Unit Double,
     hitSide :: Side,
     hitAt :: Double,
     hitMaterial :: Material
@@ -42,13 +42,13 @@ instance Hittable Sphere where
           guard (tmin <= t && t <= tmax)
           let point = ray `at` t
               outwardNormal = unit (point `minus` spCenter)
-              side = if dir `dot` outwardNormal < 0 then Front else Back
+              side = if dir `dot` unUnit outwardNormal < 0 then Front else Back
           pure $
             Hit
               { hitPoint = point,
                 hitNormal = case side of
                   Front -> outwardNormal
-                  Back -> neg outwardNormal,
+                  Back -> negUnit outwardNormal,
                 hitSide = side,
                 hitAt = t,
                 hitMaterial = spMaterial

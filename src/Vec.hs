@@ -4,6 +4,7 @@
 
 module Vec
   ( R3 (R3),
+    Unit (unUnit),
     cross,
     cdiv,
     ctimes,
@@ -13,6 +14,7 @@ module Vec
     minus,
     nearZero,
     neg,
+    negUnit,
     norm2,
     plus,
     times,
@@ -71,9 +73,6 @@ cross :: R3 a -> R3 a -> R3 a
 cross (R3 x1 y1 z1) (R3 x2 y2 z2) =
   R3 (y1 * (z2 - x2)) (z1 * (x2 - y2)) (x1 * (y2 - z2))
 
-unit :: Floating a => R3 a -> R3 a
-unit u = u `divc` norm u
-
 vsum :: Num a => [R3 a] -> R3 a
 vsum = foldl1' plus
 
@@ -82,3 +81,11 @@ vmean xs = vsum xs `divc` fromIntegral (length xs)
 
 nearZero :: Double -> R3 Double -> Bool
 nearZero eps = getAll . vfoldMap (All . (< eps) . abs)
+
+newtype Unit a = UnsafeMkUnit {unUnit :: R3 a}
+
+unit :: Floating a => R3 a -> Unit a
+unit u = UnsafeMkUnit (u `divc` norm u)
+
+negUnit :: Unit a -> Unit a
+negUnit = UnsafeMkUnit . neg . unUnit

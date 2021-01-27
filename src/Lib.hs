@@ -24,6 +24,7 @@ import System.IO (hPutStr)
 import Text.Printf (printf)
 import Vec
   ( R3 (..),
+    Unit (unUnit),
     divc,
     minus,
     plus,
@@ -76,7 +77,7 @@ defaultRenderConfig =
   RenderConfig
     { renderSamples = 30,
       renderBackground = \(Ray _ dir) ->
-        let R3 _ y _ = unit dir
+        let R3 _ y _ = unUnit $ unit dir
             s = 0.5 * (y + 1.0)
          in (R3 1 1 1 `timesc` (1.0 - s)) `plus` (R3 0.5 0.7 1.0 `timesc` s),
       renderSeed = 137,
