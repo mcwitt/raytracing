@@ -32,24 +32,24 @@ deriving stock instance Show a => Show (R3 a)
 neg :: R3 a -> R3 a
 neg (R3 x y z) = R3 (- x) (- y) (- z)
 
-elementwise :: (Num a => a -> a -> a) -> R3 a -> R3 a -> R3 a
-elementwise f (R3 x1 y1 z1) (R3 x2 y2 z2) = R3 (x1 `f` x2) (y1 `f` y2) (z1 `f` z2)
+vzipWith :: (a -> a -> a) -> R3 a -> R3 a -> R3 a
+vzipWith f (R3 x1 y1 z1) (R3 x2 y2 z2) = R3 (x1 `f` x2) (y1 `f` y2) (z1 `f` z2)
 
-plus, minus, times :: R3 a -> R3 a -> R3 a
-plus = elementwise (+)
-minus = elementwise (-)
-times = elementwise (*)
+plus, minus, times :: Num a => R3 a -> R3 a -> R3 a
+plus = vzipWith (+)
+minus = vzipWith (-)
+times = vzipWith (*)
 
-vmap :: (Num a => a -> a) -> R3 a -> R3 a
+vmap :: (a -> a) -> R3 a -> R3 a
 vmap f (R3 x y z) = R3 (f x) (f y) (f z)
 
 vfoldMap :: Monoid m => (a -> m) -> R3 a -> m
 vfoldMap f (R3 x y z) = f x <> f y <> f z
 
-ctimes :: a -> R3 a -> R3 a
+ctimes :: Num a => a -> R3 a -> R3 a
 ctimes c = vmap (c *)
 
-timesc :: R3 a -> a -> R3 a
+timesc :: Num a => R3 a -> a -> R3 a
 timesc = flip ctimes
 
 cdiv :: Fractional a => a -> R3 a -> R3 a
@@ -74,7 +74,7 @@ cross (R3 x1 y1 z1) (R3 x2 y2 z2) =
 unit :: Floating a => R3 a -> R3 a
 unit u = u `divc` norm u
 
-vsum :: [R3 a] -> R3 a
+vsum :: Num a => [R3 a] -> R3 a
 vsum = foldl1' plus
 
 vmean :: Fractional a => [R3 a] -> R3 a
