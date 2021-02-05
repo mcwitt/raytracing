@@ -6,7 +6,6 @@ module Lib
     RenderConfig (..),
     ViewportConfig (..),
     render,
-    defaultImageConfig,
     defaultViewportConfig,
     defaultRenderConfig,
   )
@@ -17,7 +16,7 @@ import Data.RVar (RVar, sampleRVar)
 import Data.Random (stdUniform)
 import Data.Ratio ((%))
 import Hittable (Hit (..), Hittable, hit)
-import Material
+import Material (Material (scatter), Scattered (Scattered))
 import PPM (PPM (..))
 import Ray (Ray (Ray, rayDir))
 import System.IO (hPutStr)
@@ -42,9 +41,6 @@ data ImageConfig = ImageConfig
 
 aspectRatio :: ImageConfig -> Ratio Int
 aspectRatio (ImageConfig w h) = w % h
-
-defaultImageConfig :: ImageConfig
-defaultImageConfig = ImageConfig {imWidth = 400, imHeight = 225}
 
 data ViewportConfig = ViewportConfig
   { viewportHeight :: Double,

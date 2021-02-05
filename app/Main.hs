@@ -1,16 +1,39 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
+
 module Main (main) where
 
+import Data.Text.IO as TIO (writeFile)
 import Hittable (Sphere (..))
 import Lib
   ( ImageConfig (..),
-    defaultImageConfig,
     defaultRenderConfig,
     defaultViewportConfig,
     render,
   )
 import Material (dielectric, lambertian, metal)
+import Options.Generic
+  ( ParseRecord (..),
+    getRecord,
+    lispCaseModifiers,
+    parseRecordWithModifiers,
+    type (<!>) (unDefValue),
+  )
 import PPM (encodeP3)
 import Vec (R3 (..))
+
+data Arguments = Arguments
+  { imageWidth :: Int <!> "450",
+    imageHeight :: Int <!> "225",
+    outputFile :: FilePath <!> "output.ppm"
+  }
+  deriving stock (Generic, Show)
+
+instance ParseRecord Arguments where
+  parseRecord = parseRecordWithModifiers lispCaseModifiers
 
 main :: IO ()
 main = do
@@ -36,11 +59,16 @@ main = do
               spMaterial = metal 0 $ R3 0.8 0.6 0.2
             }
         ]
-  let imageConfig = defaultImageConfig {imWidth = 800, imHeight = 450}
+  args :: Arguments <- getRecord "raytracer"
+  let imageConfig =
+        ImageConfig
+          { imWidth = unDefValue $ imageWidth args,
+            imHeight = unDefValue $ imageHeight args
+          }
   image <-
     render
       imageConfig
       (defaultViewportConfig imageConfig)
       defaultRenderConfig
       world
-  putTextLn $ encodeP3 image
+  TIO.writeFile (unDefValue $ outputFile args) $ encodeP3 image

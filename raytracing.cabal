@@ -52,7 +52,6 @@ library
 
   build-depends:
     , monad-loops  ^>=0.4.3
-    , random       ^>=1.2.0
     , random-fu    ^>=0.2.7
     , rvar         ^>=0.2.0
     , safe         ^>=0.3.19
@@ -61,4 +60,7 @@ executable raytracing
   import:         shared-properties
   hs-source-dirs: app
   main-is:        Main.hs
-  build-depends:  raytracing
+  build-depends:
+    , optparse-generic  ^>=1.4.4
+    , raytracing
+    , text              ^>=1.2.4.1
