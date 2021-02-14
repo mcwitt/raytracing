@@ -38,17 +38,19 @@ instance Hittable Sphere where
         c = norm2 oc - spRadius ** 2
         d = b ** 2 - a * c
      in do
-          t <- if d >= 0 then Just ((- b - sqrt d) / a) else Nothing
+          guard (d >= 0)
+          let t = (- b - sqrt d) / a
           guard (tmin <= t && t <= tmax)
           let point = ray `at` t
-              outwardNormal = unit (point `minus` spCenter)
-              side = if dir `dot` unUnit outwardNormal < 0 then Front else Back
+              outwardNormal = point `minus` spCenter
+              side = if dir `dot` outwardNormal < 0 then Front else Back
+              unitOutwardNormal = unit outwardNormal
           pure $
             Hit
               { hitPoint = point,
                 hitNormal = case side of
-                  Front -> outwardNormal
-                  Back -> negUnit outwardNormal,
+                  Front -> unitOutwardNormal
+                  Back -> negUnit unitOutwardNormal,
                 hitSide = side,
                 hitAt = t,
                 hitMaterial = spMaterial
