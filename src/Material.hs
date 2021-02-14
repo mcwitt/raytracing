@@ -16,6 +16,7 @@ import Ray (Ray (Ray))
 import Vec
   ( R3 (..),
     Unit (unUnit),
+    cosAngle,
     ctimes,
     dot,
     minus,
@@ -62,20 +63,24 @@ metal fuzz albedo = Material $ \rayDir point normal _ -> do
   pure $ Scattered albedo scatteredRay
 
 dielectric :: Double -> Material
-dielectric ir = Material $ \rayDir point unitNormal side ->
+dielectric ir = Material $ \rayDir point unitNormal side -> do
   let ratio = case side of
         Front -> 1.0 / ir
         Back -> ir
       unitDir = unit rayDir
-      cosTheta = - unUnit unitDir `dot` unUnit unitNormal
-      sinTheta = sqrt (1.0 - cosTheta ** 2)
-      cannotRefract = ratio * sinTheta > 1.0
-      newDir =
-        if cannotRefract
+      cosθ = - cosAngle unitDir unitNormal
+      sinθ = sqrt (1.0 - cosθ ** 2)
+      cannotRefract = ratio * sinθ > 1.0
+      reflectance =
+        let r0 = ((1 - ratio) / (1 + ratio)) ** 2
+         in r0 + (1 - r0) * ((1 - cosθ) ** 5)
+  r <- uniform 0 1
+  let newDir =
+        if cannotRefract || r < reflectance
           then reflect unitDir unitNormal
           else refract unitDir unitNormal ratio
       scatteredRay = Ray point newDir
-   in pure $ Scattered (R3 1 1 1) scatteredRay
+  pure $ Scattered (R3 1 1 1) scatteredRay
 
 reflect :: Num a => Unit a -> Unit a -> R3 a
 reflect uv un =
@@ -87,7 +92,7 @@ refract :: Floating a => Unit a -> Unit a -> a -> R3 a
 refract uv un ratio =
   let v = unUnit uv
       n = unUnit un
-      cosTheta = - v `dot` n
-      rperp = ratio `ctimes` (v `plus` (cosTheta `ctimes` n))
+      cosθ = - v `dot` n
+      rperp = ratio `ctimes` (v `plus` (cosθ `ctimes` n))
       rpar = (- sqrt (abs (1 - norm2 rperp))) `ctimes` n
    in rperp `plus` rpar

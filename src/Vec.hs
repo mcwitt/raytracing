@@ -5,6 +5,7 @@
 module Vec
   ( R3 (R3),
     Unit (unUnit),
+    cosAngle,
     cross,
     cdiv,
     ctimes,
@@ -89,3 +90,6 @@ unit u = UnsafeMkUnit (u `divc` norm u)
 
 negUnit :: Unit a -> Unit a
 negUnit = UnsafeMkUnit . neg . unUnit
+
+cosAngle :: Unit a -> Unit a -> a
+cosAngle u v = unUnit u `dot` unUnit v
