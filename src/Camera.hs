@@ -1,29 +1,33 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Camera (Camera (Camera), defaultCamera, getRay) where
+module Camera (Camera (..), defaultCamera, getRay) where
 
 import Data.Ratio ((%))
 import Ray (Ray (Ray))
-import Vec (R3 (..), divc, minus, plus, timesc)
+import Vec
 
 newtype Degrees = Degrees {unDegrees :: Double} deriving newtype (Eq, Show, Num)
 
 newtype Radians = Radians {unRadians :: Double} deriving newtype (Eq, Show, Num)
 
 data Camera = Camera
-  { verticalFovDegrees :: Degrees,
+  { lookFrom :: R3 Double,
+    lookAt :: R3 Double,
+    up :: R3 Double,
+    verticalFovDegrees :: Degrees,
     aspectRatio :: Ratio Int,
-    origin :: R3 Double,
     focalLength :: Double
   }
 
 defaultCamera :: Camera
 defaultCamera =
   Camera
-    { verticalFovDegrees = Degrees 90.0,
+    { lookFrom = R3 0 0 1,
+      lookAt = R3 0 0 0,
+      up = R3 0 1 0,
+      verticalFovDegrees = Degrees 90.0,
       aspectRatio = 3 % 2,
-      origin = R3 0.0 0.0 0.0,
       focalLength = 1.0
     }
 
@@ -39,22 +43,18 @@ viewportHeight camera =
 viewportWidth :: Camera -> Double
 viewportWidth c = realToFrac (aspectRatio c) * viewportHeight c
 
-horizontal :: Camera -> R3 Double
-horizontal camera = R3 (viewportWidth camera) 0 0
-
-vertical :: Camera -> R3 Double
-vertical camera = R3 0 (viewportHeight camera) 0
-
-lowerLeftCorner :: Camera -> R3 Double
-lowerLeftCorner c =
-  origin c `minus` (horizontal c `divc` 2) `minus` (vertical c `divc` 2) `minus` R3 0 0 (focalLength c)
-
 getRay :: Camera -> Double -> Double -> Ray
-getRay c u v =
-  Ray
-    (origin c)
-    ( lowerLeftCorner c
-        `plus` (horizontal c `timesc` u)
-        `plus` (vertical c `timesc` v)
-        `minus` origin c
-    )
+getRay c@Camera {..} s t =
+  let w = unit (lookFrom `minus` lookAt)
+      u = unitCross (unit up) w
+      v = unitCross w u
+      horizontal = viewportWidth c `ctimesUnit` u
+      vertical = viewportHeight c `ctimesUnit` v
+      lowerLeftCorner = lookFrom `minus` (horizontal `divc` 2) `minus` (vertical `divc` 2) `minus` unUnit w
+   in Ray
+        lookFrom
+        ( lowerLeftCorner
+            `plus` (s `ctimes` horizontal)
+            `plus` (t `ctimes` vertical)
+            `minus` lookFrom
+        )

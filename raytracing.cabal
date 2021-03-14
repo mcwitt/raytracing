@@ -65,3 +65,12 @@ executable raytracing
     , optparse-generic  ^>=1.4.4
     , raytracing
     , text              ^>=1.2.4.1
+
+test-suite raytracing-test
+  import:         shared-properties
+  type:           exitcode-stdio-1.0
+  main-is:        Spec.hs
+  hs-source-dirs: test
+  build-depends:
+    , hspec
+    , raytracing

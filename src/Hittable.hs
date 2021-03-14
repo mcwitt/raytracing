@@ -11,7 +11,7 @@ where
 import Material (Material, Side (..))
 import Ray (Ray (Ray), at)
 import Safe (minimumByMay)
-import Vec (R3, Unit (..), dot, minus, negUnit, norm2, unit)
+import Vec (R3, Unit (..), dot, minus, norm2, unit, unitNeg)
 
 data Hit = Hit
   { hitPoint :: R3 Double,
@@ -50,7 +50,7 @@ instance Hittable Sphere where
               { hitPoint = point,
                 hitNormal = case side of
                   Front -> unitOutwardNormal
-                  Back -> negUnit unitOutwardNormal,
+                  Back -> unitNeg unitOutwardNormal,
                 hitSide = side,
                 hitAt = t,
                 hitMaterial = spMaterial
