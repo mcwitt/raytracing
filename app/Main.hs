@@ -6,12 +6,12 @@
 
 module Main (main) where
 
+import Camera (defaultCamera)
 import Data.Text.IO as TIO (writeFile)
 import Hittable (Sphere (..))
 import Lib
   ( ImageConfig (..),
     defaultRenderConfig,
-    defaultViewportConfig,
     render,
   )
 import Material (dielectric, lambertian, metal)
@@ -68,7 +68,7 @@ main = do
   image <-
     render
       imageConfig
-      (defaultViewportConfig imageConfig)
       defaultRenderConfig
+      defaultCamera
       world
   TIO.writeFile (unDefValue $ outputFile args) $ encodeP3 image

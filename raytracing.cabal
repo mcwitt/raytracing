@@ -42,6 +42,7 @@ library
   import:          shared-properties
   hs-source-dirs:  src
   exposed-modules:
+    Camera
     Color
     Hittable
     Lib

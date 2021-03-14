@@ -4,17 +4,15 @@
 module Lib
   ( ImageConfig (..),
     RenderConfig (..),
-    ViewportConfig (..),
     render,
-    defaultViewportConfig,
     defaultRenderConfig,
   )
 where
 
+import Camera (Camera, getRay)
 import Color (RGB, rgbInt)
 import Data.RVar (RVar, sampleRVar)
 import Data.Random (stdUniform)
-import Data.Ratio ((%))
 import Hittable (Hit (..), Hittable, hit)
 import Material (Material (scatter), Scattered (Scattered))
 import PPM (PPM (..))
@@ -24,8 +22,6 @@ import Text.Printf (printf)
 import Vec
   ( R3 (..),
     Unit (unUnit),
-    divc,
-    minus,
     plus,
     times,
     timesc,
@@ -38,28 +34,6 @@ data ImageConfig = ImageConfig
   { imWidth :: Int,
     imHeight :: Int
   }
-
-aspectRatio :: ImageConfig -> Ratio Int
-aspectRatio (ImageConfig w h) = w % h
-
-data ViewportConfig = ViewportConfig
-  { viewportHeight :: Double,
-    focalLength :: Double,
-    origin :: R3 Double,
-    horizontal :: R3 Double,
-    vertical :: R3 Double
-  }
-
-defaultViewportConfig :: ImageConfig -> ViewportConfig
-defaultViewportConfig ic =
-  let height = 2.0
-   in ViewportConfig
-        { viewportHeight = height,
-          focalLength = 1.0,
-          origin = R3 0 0 0,
-          horizontal = R3 (viewportWidth ic (defaultViewportConfig ic)) 0 0,
-          vertical = R3 0 height 0
-        }
 
 data RenderConfig = RenderConfig
   { renderSamples :: Int,
@@ -80,13 +54,6 @@ defaultRenderConfig =
       renderMaxChildRays = 50
     }
 
-viewportWidth :: ImageConfig -> ViewportConfig -> Double
-viewportWidth ic ViewportConfig {..} = realToFrac (aspectRatio ic) * viewportHeight
-
-lowerLeftCorner :: ViewportConfig -> R3 Double
-lowerLeftCorner ViewportConfig {..} =
-  origin `minus` (horizontal `divc` 2) `minus` (vertical `divc` 2) `minus` R3 0 0 focalLength
-
 rayColor :: Hittable a => a -> (Ray -> RGB) -> Int -> Ray -> RVar RGB
 rayColor world background = go
   where
@@ -101,8 +68,8 @@ rayColor world background = go
     eps = 1e-9
     infinity = 1e9
 
-render :: Hittable a => ImageConfig -> ViewportConfig -> RenderConfig -> a -> IO PPM
-render ImageConfig {..} vp@ViewportConfig {..} RenderConfig {..} world =
+render :: Hittable a => ImageConfig -> RenderConfig -> Camera -> a -> IO PPM
+render ImageConfig {..} RenderConfig {..} camera world =
   let cmax = 255
       rows = forM (reverse [1 .. imHeight]) $ \r -> do
         forM [1 .. imWidth] $ \c -> do
@@ -112,14 +79,7 @@ render ImageConfig {..} vp@ViewportConfig {..} RenderConfig {..} world =
                 dy <- stdUniform
                 let u = (fromIntegral c + dx) / fromIntegral (imWidth - 1)
                     v = (fromIntegral r + dy) / fromIntegral (imHeight - 1)
-                rayColor world renderBackground renderMaxChildRays $
-                  Ray
-                    origin
-                    ( lowerLeftCorner vp
-                        `plus` (horizontal `timesc` u)
-                        `plus` (vertical `timesc` v)
-                        `minus` origin
-                    )
+                rayColor world renderBackground renderMaxChildRays $ getRay camera u v
               colors = replicateM renderSamples color
           rgbInt cmax . vmap sqrt . vmean <$> sampleRVar colors
    in PPM imWidth imHeight cmax <$> rows
