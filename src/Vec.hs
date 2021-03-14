@@ -5,22 +5,24 @@
 module Vec
   ( R3 (R3),
     Unit (unUnit),
-    cosAngle,
     cross,
     cdiv,
     ctimes,
+    ctimesUnit,
     divc,
     dot,
     vmean,
     minus,
     nearZero,
     neg,
-    negUnit,
     norm2,
     plus,
     times,
     timesc,
     unit,
+    unitCos,
+    unitCross,
+    unitNeg,
     vmap,
   )
 where
@@ -29,6 +31,8 @@ import Data.List (foldl1')
 
 data R3 a where
   R3 :: Real a => a -> a -> a -> R3 a
+
+deriving stock instance Eq a => Eq (R3 a)
 
 deriving stock instance Show a => Show (R3 a)
 
@@ -72,7 +76,7 @@ norm = sqrt . norm2
 
 cross :: R3 a -> R3 a -> R3 a
 cross (R3 x1 y1 z1) (R3 x2 y2 z2) =
-  R3 (y1 * (z2 - x2)) (z1 * (x2 - y2)) (x1 * (y2 - z2))
+  R3 (y1 * z2 - z1 * y2) (z1 * x2 - x1 * z2) (x1 * y2 - y1 * x2)
 
 vsum :: Num a => [R3 a] -> R3 a
 vsum = foldl1' plus
@@ -88,8 +92,14 @@ newtype Unit a = UnsafeMkUnit {unUnit :: R3 a}
 unit :: Floating a => R3 a -> Unit a
 unit u = UnsafeMkUnit (u `divc` norm u)
 
-negUnit :: Unit a -> Unit a
-negUnit = UnsafeMkUnit . neg . unUnit
+unitCos :: Unit a -> Unit a -> a
+unitCos u v = unUnit u `dot` unUnit v
 
-cosAngle :: Unit a -> Unit a -> a
-cosAngle u v = unUnit u `dot` unUnit v
+unitCross :: Unit a -> Unit a -> Unit a
+unitCross u v = UnsafeMkUnit (unUnit u `cross` unUnit v)
+
+unitNeg :: Unit a -> Unit a
+unitNeg = UnsafeMkUnit . neg . unUnit
+
+ctimesUnit :: Num a => a -> Unit a -> R3 a
+ctimesUnit c = (c `ctimes`) . unUnit

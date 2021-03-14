@@ -16,7 +16,6 @@ import Ray (Ray (Ray))
 import Vec
   ( R3 (..),
     Unit (unUnit),
-    cosAngle,
     ctimes,
     dot,
     minus,
@@ -24,6 +23,7 @@ import Vec
     norm2,
     plus,
     unit,
+    unitCos,
   )
 
 data Scattered = Scattered
@@ -68,7 +68,7 @@ dielectric ir = Material $ \rayDir point unitNormal side -> do
         Front -> 1.0 / ir
         Back -> ir
       unitDir = unit rayDir
-      cosθ = - cosAngle unitDir unitNormal
+      cosθ = - unitCos unitDir unitNormal
       sinθ = sqrt (1.0 - cosθ ** 2)
       cannotRefract = ratio * sinθ > 1.0
       reflectance =
