@@ -9,7 +9,7 @@ module Lib
   )
 where
 
-import Camera (Camera, getRay)
+import Camera (Camera, getRay, viewport)
 import Color (RGB, rgbInt)
 import Data.RVar (RVar, sampleRVar)
 import Data.Random (stdUniform)
@@ -71,6 +71,7 @@ rayColor world background = go
 render :: Hittable a => ImageConfig -> RenderConfig -> Camera -> a -> IO PPM
 render ImageConfig {..} RenderConfig {..} camera world =
   let cmax = 255
+      vp = viewport camera
       rows = forM (reverse [1 .. imHeight]) $ \r -> do
         forM [1 .. imWidth] $ \c -> do
           hPutStr stderr $ printf "\rProgress: %d/%d" (imHeight - r + 1) imHeight
@@ -79,7 +80,7 @@ render ImageConfig {..} RenderConfig {..} camera world =
                 dy <- stdUniform
                 let u = (fromIntegral c + dx) / fromIntegral (imWidth - 1)
                     v = (fromIntegral r + dy) / fromIntegral (imHeight - 1)
-                rayColor world renderBackground renderMaxChildRays $ getRay camera u v
+                rayColor world renderBackground renderMaxChildRays $ getRay camera vp u v
               colors = replicateM renderSamples color
           rgbInt cmax . vmap sqrt . vmean <$> sampleRVar colors
    in PPM imWidth imHeight cmax <$> rows

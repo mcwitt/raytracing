@@ -11,6 +11,7 @@ import Data.Text.IO as TIO (writeFile)
 import Hittable (Sphere (..))
 import Lib
   ( ImageConfig (..),
+    RenderConfig (..),
     defaultRenderConfig,
     render,
   )
@@ -68,12 +69,14 @@ main = do
   let camera =
         defaultCamera
           { lookFrom = R3 (-2) 2 1,
-            lookAt = R3 0 0 (-1)
+            lookAt = R3 0 0 (-1),
+            verticalFovDegrees = 20
           }
+      renderConfig = defaultRenderConfig {renderSamples = 10}
   image <-
     render
       imageConfig
-      defaultRenderConfig
+      renderConfig
       camera
       world
   TIO.writeFile (unDefValue $ outputFile args) $ encodeP3 image
