@@ -24,7 +24,7 @@ import Options.Generic
     type (<!>) (unDefValue),
   )
 import PPM (encodeP3)
-import Vec (R3 (..))
+import Vec (R3 (..), minus, norm)
 
 data Arguments = Arguments
   { imageWidth :: Int <!> "450",
@@ -68,9 +68,11 @@ main = do
           }
   let cameraConfig =
         defaultCameraConfig
-          { lookFrom = R3 (-2) 2 1,
+          { lookFrom = R3 3 3 2,
             lookAt = R3 0 0 (-1),
-            verticalFovDegrees = 20
+            focusDist = norm (lookFrom cameraConfig `minus` lookAt cameraConfig),
+            verticalFovDegrees = 20,
+            aperture = 2.0
           }
       renderConfig = defaultRenderConfig {renderSamples = 10}
   image <-

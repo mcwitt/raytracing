@@ -80,7 +80,8 @@ render ImageConfig {..} RenderConfig {..} cameraConfig world =
                 dy <- stdUniform
                 let u = (fromIntegral x + dx) / fromIntegral (imWidth - 1)
                     v = (fromIntegral y + dy) / fromIntegral (imHeight - 1)
-                rayColor world renderBackground renderMaxChildRays $ getRay cameraConfig c u v
+                ray <- getRay cameraConfig c u v
+                rayColor world renderBackground renderMaxChildRays ray
               colors = replicateM renderSamples color
           rgbInt cmax . vmap sqrt . vmean <$> sampleRVar colors
    in PPM imWidth imHeight cmax <$> rows

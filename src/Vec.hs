@@ -15,6 +15,7 @@ module Vec
     minus,
     nearZero,
     neg,
+    norm,
     norm2,
     plus,
     times,
