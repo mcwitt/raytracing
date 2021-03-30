@@ -9,7 +9,7 @@ module Lib
   )
 where
 
-import Camera (Camera, getRay, viewport)
+import Camera (CameraConfig, camera, getRay)
 import Color (RGB, rgbInt)
 import Data.RVar (RVar, sampleRVar)
 import Data.Random (stdUniform)
@@ -68,19 +68,19 @@ rayColor world background = go
     eps = 1e-9
     infinity = 1e9
 
-render :: Hittable a => ImageConfig -> RenderConfig -> Camera -> a -> IO PPM
-render ImageConfig {..} RenderConfig {..} camera world =
+render :: Hittable a => ImageConfig -> RenderConfig -> CameraConfig -> a -> IO PPM
+render ImageConfig {..} RenderConfig {..} cameraConfig world =
   let cmax = 255
-      vp = viewport camera
-      rows = forM (reverse [1 .. imHeight]) $ \r -> do
-        forM [1 .. imWidth] $ \c -> do
-          hPutStr stderr $ printf "\rProgress: %d/%d" (imHeight - r + 1) imHeight
+      c = camera cameraConfig
+      rows = forM (reverse [1 .. imHeight]) $ \y -> do
+        forM [1 .. imWidth] $ \x -> do
+          hPutStr stderr $ printf "\rProgress: %d/%d" (imHeight - y + 1) imHeight
           let color = do
                 dx <- stdUniform
                 dy <- stdUniform
-                let u = (fromIntegral c + dx) / fromIntegral (imWidth - 1)
-                    v = (fromIntegral r + dy) / fromIntegral (imHeight - 1)
-                rayColor world renderBackground renderMaxChildRays $ getRay camera vp u v
+                let u = (fromIntegral x + dx) / fromIntegral (imWidth - 1)
+                    v = (fromIntegral y + dy) / fromIntegral (imHeight - 1)
+                rayColor world renderBackground renderMaxChildRays $ getRay cameraConfig c u v
               colors = replicateM renderSamples color
           rgbInt cmax . vmap sqrt . vmean <$> sampleRVar colors
    in PPM imWidth imHeight cmax <$> rows

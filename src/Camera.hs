@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Camera (Camera (..), defaultCamera, getRay, viewport) where
+module Camera (CameraConfig (..), camera, defaultCameraConfig, getRay) where
 
 import Data.Ratio ((%))
 import Ray (Ray (Ray))
@@ -11,7 +11,7 @@ newtype Degrees = Degrees {unDegrees :: Double} deriving newtype (Eq, Show, Num)
 
 newtype Radians = Radians {unRadians :: Double} deriving newtype (Eq, Show, Num)
 
-data Camera = Camera
+data CameraConfig = CameraConfig
   { lookFrom :: R3 Double,
     lookAt :: R3 Double,
     up :: R3 Double,
@@ -20,9 +20,9 @@ data Camera = Camera
     focalLength :: Double
   }
 
-defaultCamera :: Camera
-defaultCamera =
-  Camera
+defaultCameraConfig :: CameraConfig
+defaultCameraConfig =
+  CameraConfig
     { lookFrom = R3 0 0 1,
       lookAt = R3 0 0 0,
       up = R3 0 1 0,
@@ -31,21 +31,25 @@ defaultCamera =
       focalLength = 1.0
     }
 
-data Viewport = UnsafeMkViewport
+data Camera = UnsafeMkCamera
   { horizontal :: R3 Double,
     vertical :: R3 Double,
     lowerLeftCorner :: R3 Double
   }
 
-viewport :: Camera -> Viewport
-viewport c@Camera {..} =
+camera :: CameraConfig -> Camera
+camera CameraConfig {..} =
   let w = unit (lookFrom `minus` lookAt)
       u = unitCross (unit up) w
       v = unitCross w u
-      horizontal = viewportWidth c `ctimesUnit` u
-      vertical = viewportHeight c `ctimesUnit` v
+      θ = degreesToRadians verticalFovDegrees
+      h = tan (unRadians θ / 2)
+      viewportHeight = 2.0 * h
+      viewportWidth = realToFrac aspectRatio * viewportHeight
+      horizontal = viewportWidth `ctimesUnit` u
+      vertical = viewportHeight `ctimesUnit` v
       lowerLeftCorner = lookFrom `minus` (horizontal `divc` 2) `minus` (vertical `divc` 2) `minus` unUnit w
-   in UnsafeMkViewport
+   in UnsafeMkCamera
         { horizontal = horizontal,
           vertical = vertical,
           lowerLeftCorner = lowerLeftCorner
@@ -54,21 +58,12 @@ viewport c@Camera {..} =
 degreesToRadians :: Degrees -> Radians
 degreesToRadians (Degrees deg) = Radians (deg * pi / 180)
 
-viewportHeight :: Camera -> Double
-viewportHeight camera =
-  let θ = degreesToRadians (verticalFovDegrees camera)
-      h = tan (unRadians θ / 2)
-   in 2.0 * h
-
-viewportWidth :: Camera -> Double
-viewportWidth c = realToFrac (aspectRatio c) * viewportHeight c
-
-getRay :: Camera -> Viewport -> Double -> Double -> Ray
-getRay c vp s t =
+getRay :: CameraConfig -> Camera -> Double -> Double -> Ray
+getRay cc c s t =
   Ray
-    (lookFrom c)
-    ( lowerLeftCorner vp
-        `plus` (s `ctimes` horizontal vp)
-        `plus` (t `ctimes` vertical vp)
-        `minus` lookFrom c
+    (lookFrom cc)
+    ( lowerLeftCorner c
+        `plus` (s `ctimes` horizontal c)
+        `plus` (t `ctimes` vertical c)
+        `minus` lookFrom cc
     )

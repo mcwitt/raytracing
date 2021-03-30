@@ -66,8 +66,8 @@ main = do
           { imWidth = unDefValue $ imageWidth args,
             imHeight = unDefValue $ imageHeight args
           }
-  let camera =
-        defaultCamera
+  let cameraConfig =
+        defaultCameraConfig
           { lookFrom = R3 (-2) 2 1,
             lookAt = R3 0 0 (-1),
             verticalFovDegrees = 20
@@ -77,6 +77,6 @@ main = do
     render
       imageConfig
       renderConfig
-      camera
+      cameraConfig
       world
   TIO.writeFile (unDefValue $ outputFile args) $ encodeP3 image
