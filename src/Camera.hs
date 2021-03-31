@@ -9,6 +9,17 @@ import Data.Random (uniform)
 import Data.Ratio ((%))
 import Ray (Ray (Ray))
 import Vec
+  ( R3 (..),
+    Unit,
+    ctimes,
+    ctimesUnit,
+    divc,
+    minus,
+    norm2,
+    plus,
+    unit,
+    unitCross,
+  )
 
 newtype Degrees = Degrees {unDegrees :: Double} deriving newtype (Eq, Show, Num)
 
@@ -30,7 +41,7 @@ defaultCameraConfig =
     { lookFrom = R3 0 0 1,
       lookAt = R3 0 0 0,
       up = R3 0 1 0,
-      verticalFovDegrees = Degrees 90.0,
+      verticalFovDegrees = Degrees 20,
       aspectRatio = 3 % 2,
       aperture = 1.0,
       focusDist = 1.0
@@ -74,16 +85,17 @@ degreesToRadians :: Degrees -> Radians
 degreesToRadians (Degrees deg) = Radians (deg * pi / 180)
 
 getRay :: CameraConfig -> Camera -> Double -> Double -> RVar Ray
-getRay cc c s t = do
-  R3 x y _ <- uniformInUnitDisk
-  let offset = (x `ctimesUnit` uhat c) `plus` (y `ctimesUnit` vhat c)
+getRay CameraConfig {..} c s t = do
+  u <- uniformInUnitDisk
+  let R3 x y _ = (0.5 * aperture) `ctimes` u
+      offset = (x `ctimesUnit` uhat c) `plus` (y `ctimesUnit` vhat c)
   pure $
     Ray
-      (lookFrom cc `plus` offset)
+      (lookFrom `plus` offset)
       ( lowerLeftCorner c
           `plus` (s `ctimes` horizontal c)
           `plus` (t `ctimes` vertical c)
-          `minus` lookFrom cc
+          `minus` lookFrom
           `minus` offset
       )
   where

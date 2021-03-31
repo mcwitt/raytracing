@@ -63,7 +63,9 @@ executable raytracing
   main-is:        Main.hs
   build-depends:
     , optparse-generic  ^>=1.4.4
+    , random-fu         ^>=0.2.7
     , raytracing
+    , rvar              ^>=0.2.0
     , text              ^>=1.2.4.1
 
 test-suite raytracing-test
