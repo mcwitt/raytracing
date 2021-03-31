@@ -31,7 +31,7 @@ where
 import Data.List (foldl1')
 
 data R3 a where
-  R3 :: Real a => a -> a -> a -> R3 a
+  R3 :: Real a => !a -> !a -> !a -> R3 a
 
 deriving stock instance Eq a => Eq (R3 a)
 
