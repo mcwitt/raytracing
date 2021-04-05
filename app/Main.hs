@@ -18,6 +18,7 @@ import Hittable (Sphere (Sphere))
 import Lib
   ( ImageConfig (..),
     RenderConfig (..),
+    defaultImageConfig,
     defaultRenderConfig,
     render,
   )
@@ -33,8 +34,8 @@ import PPM (encodeP3)
 import Vec (R3 (..), minus, norm, times)
 
 data Arguments = Arguments
-  { imageWidth :: Int <!> "1200",
-    imageHeight :: Int <!> "800",
+  { imageWidth :: Int <!> "600",
+    imageHeight :: Int <!> "400",
     outputFile :: FilePath <!> "output.ppm"
   }
   deriving stock (Generic, Show)
@@ -74,7 +75,7 @@ main :: IO ()
 main = do
   args :: Arguments <- getRecord "raytracer"
   let imageConfig =
-        ImageConfig
+        defaultImageConfig
           { imWidth = unDefValue $ imageWidth args,
             imHeight = unDefValue $ imageHeight args
           }

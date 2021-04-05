@@ -5,6 +5,7 @@ module Lib
   ( ImageConfig (..),
     RenderConfig (..),
     render,
+    defaultImageConfig,
     defaultRenderConfig,
   )
 where
@@ -34,6 +35,13 @@ data ImageConfig = ImageConfig
   { imWidth :: Int,
     imHeight :: Int
   }
+
+defaultImageConfig :: ImageConfig
+defaultImageConfig =
+  ImageConfig
+    { imWidth = 600,
+      imHeight = 400
+    }
 
 data RenderConfig = RenderConfig
   { renderSamples :: Int,
