@@ -11,12 +11,12 @@ module Lib
 where
 
 import Camera (CameraConfig, camera, getRay)
-import Color (RGB, rgbInt)
+import Color (RGB)
 import Data.RVar (RVar, sampleRVar)
 import Data.Random (stdUniform)
 import Hittable (Hit (..), Hittable, hit)
 import Material (Material (scatter), Scattered (Scattered))
-import PPM (PPM (..))
+import PPM (PPM, ppm)
 import Ray (Ray (Ray, rayDir))
 import System.IO (hPutStr)
 import Text.Printf (printf)
@@ -76,20 +76,24 @@ rayColor world background = go
     eps = 1e-9
     infinity = 1e9
 
+renderedPixels :: Hittable a => ImageConfig -> RenderConfig -> CameraConfig -> a -> IO [RGB]
+renderedPixels ImageConfig {..} RenderConfig {..} cameraConfig scene =
+  let c = camera cameraConfig
+      pixels = do y <- reverse [1 .. imHeight]; x <- [1 .. imWidth]; pure (x, y)
+      pixelValues = forM pixels $ \(x, y) -> do
+        hPutStr stderr $ printf "\rProgress: %d/%d" (imHeight - y + 1) imHeight
+        let color = do
+              dx <- stdUniform
+              dy <- stdUniform
+              let u = (fromIntegral x + dx) / fromIntegral (imWidth - 1)
+                  v = (fromIntegral y + dy) / fromIntegral (imHeight - 1)
+              ray <- getRay cameraConfig c u v
+              rayColor scene renderBackground renderMaxChildRays ray
+            colors = replicateM renderSamples color
+        vmap sqrt . vmean <$> sampleRVar colors
+   in pixelValues
+
 render :: Hittable a => ImageConfig -> RenderConfig -> CameraConfig -> a -> IO PPM
-render ImageConfig {..} RenderConfig {..} cameraConfig world =
-  let cmax = 255
-      c = camera cameraConfig
-      rows = forM (reverse [1 .. imHeight]) $ \y -> do
-        forM [1 .. imWidth] $ \x -> do
-          hPutStr stderr $ printf "\rProgress: %d/%d" (imHeight - y + 1) imHeight
-          let color = do
-                dx <- stdUniform
-                dy <- stdUniform
-                let u = (fromIntegral x + dx) / fromIntegral (imWidth - 1)
-                    v = (fromIntegral y + dy) / fromIntegral (imHeight - 1)
-                ray <- getRay cameraConfig c u v
-                rayColor world renderBackground renderMaxChildRays ray
-              colors = replicateM renderSamples color
-          rgbInt cmax . vmap sqrt . vmean <$> sampleRVar colors
-   in PPM imWidth imHeight cmax <$> rows
+render imageConfig renderConfig cameraConfig scene = do
+  ppm (imWidth imageConfig) (imHeight imageConfig) 255
+    <$> renderedPixels imageConfig renderConfig cameraConfig scene
