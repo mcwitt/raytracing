@@ -79,7 +79,7 @@ rayColor world background = go
 renderedPixels :: Hittable a => ImageConfig -> RenderConfig -> CameraConfig -> a -> Producer RGB IO ()
 renderedPixels ImageConfig {..} RenderConfig {..} cameraConfig scene =
   let c = camera cameraConfig
-      pixels = do y <- reverse [1 .. imHeight]; x <- [1 .. imWidth]; pure (x, y)
+      pixels = [(x, y) | y <- reverse [1 .. imHeight], x <- [1 .. imWidth]]
       pixelValues = for (each pixels) $ \(x, y) -> do
         lift $ putStr $ printf "\rProgress: %d/%d" (imHeight - y + 1) imHeight
         let color :: RVar RGB = do
