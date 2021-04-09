@@ -21,9 +21,9 @@ import Vec
     unitCross,
   )
 
-newtype Degrees = Degrees {unDegrees :: Double} deriving newtype (Eq, Show, Num)
+newtype Degrees = Degrees Double deriving newtype (Eq, Show, Num)
 
-newtype Radians = Radians {unRadians :: Double} deriving newtype (Eq, Show, Num)
+newtype Radians = Radians Double deriving newtype (Eq, Show, Num)
 
 data CameraConfig = CameraConfig
   { lookFrom :: R3 Double,
@@ -61,8 +61,8 @@ camera CameraConfig {..} =
   let w = unit (lookFrom `minus` lookAt)
       u = unitCross (unit up) w
       v = unitCross w u
-      θ = degreesToRadians verticalFovDegrees
-      h = tan (unRadians θ / 2)
+      Radians θ = degreesToRadians verticalFovDegrees
+      h = tan (θ / 2)
       viewportHeight = 2.0 * h
       viewportWidth = realToFrac aspectRatio * viewportHeight
       horizontal = (focusDist * viewportWidth) `ctimesUnit` u

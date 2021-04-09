@@ -16,9 +16,9 @@ import Data.RVar (RVar, sampleRVar)
 import Data.Random (stdUniform)
 import Hittable (Hit (..), Hittable, hit)
 import Material (Material (scatter), Scattered (Scattered))
-import PPM (PPM, ppm)
+import PPM (StreamingPPM (..))
+import Pipes (Producer, each, for, yield)
 import Ray (Ray (Ray, rayDir))
-import System.IO (hPutStr)
 import Text.Printf (printf)
 import Vec
   ( R3 (..),
@@ -76,13 +76,13 @@ rayColor world background = go
     eps = 1e-9
     infinity = 1e9
 
-renderedPixels :: Hittable a => ImageConfig -> RenderConfig -> CameraConfig -> a -> IO [RGB]
+renderedPixels :: Hittable a => ImageConfig -> RenderConfig -> CameraConfig -> a -> Producer RGB IO ()
 renderedPixels ImageConfig {..} RenderConfig {..} cameraConfig scene =
   let c = camera cameraConfig
       pixels = do y <- reverse [1 .. imHeight]; x <- [1 .. imWidth]; pure (x, y)
-      pixelValues = forM pixels $ \(x, y) -> do
-        hPutStr stderr $ printf "\rProgress: %d/%d" (imHeight - y + 1) imHeight
-        let color = do
+      pixelValues = for (each pixels) $ \(x, y) -> do
+        lift $ putStr $ printf "\rProgress: %d/%d" (imHeight - y + 1) imHeight
+        let color :: RVar RGB = do
               dx <- stdUniform
               dy <- stdUniform
               let u = (fromIntegral x + dx) / fromIntegral (imWidth - 1)
@@ -90,10 +90,12 @@ renderedPixels ImageConfig {..} RenderConfig {..} cameraConfig scene =
               ray <- getRay cameraConfig c u v
               rayColor scene renderBackground renderMaxChildRays ray
             colors = replicateM renderSamples color
-        vmap sqrt . vmean <$> sampleRVar colors
+        rawSample <- lift $ sampleRVar colors
+        let gammaCorrected = vmap sqrt $ vmean rawSample
+        yield gammaCorrected
    in pixelValues
 
-render :: Hittable a => ImageConfig -> RenderConfig -> CameraConfig -> a -> IO PPM
-render imageConfig renderConfig cameraConfig scene = do
-  ppm (imWidth imageConfig) (imHeight imageConfig) 255
-    <$> renderedPixels imageConfig renderConfig cameraConfig scene
+render :: Hittable a => ImageConfig -> RenderConfig -> CameraConfig -> a -> StreamingPPM IO
+render imageConfig renderConfig cameraConfig scene =
+  StreamingPPM (imWidth imageConfig) (imHeight imageConfig) 255 $
+    renderedPixels imageConfig renderConfig cameraConfig scene

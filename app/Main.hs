@@ -13,7 +13,6 @@ import Camera
 import Color (uniformRGB)
 import Data.RVar (RVar, sampleRVar)
 import Data.Random (stdUniform, uniform)
-import Data.Text.IO as TIO (writeFile)
 import Hittable (Sphere (Sphere))
 import Lib
   ( ImageConfig (..),
@@ -30,7 +29,10 @@ import Options.Generic
     parseRecordWithModifiers,
     type (<!>) (unDefValue),
   )
-import PPM (encodeP3)
+import PPM (p3Lines)
+import Pipes (MFunctor (hoist), runEffect, (>->))
+import Pipes.Prelude.Text as P (writeFileLn)
+import Pipes.Safe (runSafeT)
 import Vec (R3 (..), minus, norm, times)
 
 data Arguments = Arguments
@@ -88,11 +90,11 @@ main = do
             aperture = 0.1
           }
       renderConfig = defaultRenderConfig {renderSamples = 500}
+
   scene <- sampleRVar randomScene
-  image <-
-    render
-      imageConfig
-      renderConfig
-      cameraConfig
-      scene
-  TIO.writeFile (unDefValue $ outputFile args) $ encodeP3 image
+
+  let renderedPixels = render imageConfig renderConfig cameraConfig scene
+      outputLines = p3Lines renderedPixels
+      outputPath = unDefValue $ outputFile args
+
+  runSafeT $ runEffect $ hoist lift outputLines >-> P.writeFileLn outputPath

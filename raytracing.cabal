@@ -22,17 +22,21 @@ extra-source-files: CHANGELOG.md
 
 common shared-properties
   default-language:   Haskell2010
-  default-extensions: DerivingStrategies
+  default-extensions:
+    DerivingStrategies
+    ImportQualifiedPost
+
   build-depends:
     , base    ^>=4.14
-    , relude  ^>=0.7.0.0
+    , pipes   ^>=4.3.15
+    , relude  ^>=1.0.0.0
 
   mixins:
     base hiding (Prelude),
     relude (Relude as Prelude)
 
   ghc-options:
-    -Weverything -Wno-missing-exported-signatures
+    -O3 -Weverything -Wno-missing-exported-signatures
     -Wno-missing-import-lists -Wno-missed-specialisations
     -Wno-all-missed-specialisations -Wno-unsafe -Wno-safe
     -Wno-missing-local-signatures -Wno-monomorphism-restriction
@@ -63,10 +67,11 @@ executable raytracing
   main-is:        Main.hs
   build-depends:
     , optparse-generic  ^>=1.4.4
+    , pipes-safe        ^>=2.3.3
+    , pipes-text        ^>=1.0.0
     , random-fu         ^>=0.2.7
     , raytracing
     , rvar              ^>=0.2.0
-    , text              ^>=1.2.4.1
 
 test-suite raytracing-test
   import:         shared-properties

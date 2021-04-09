@@ -1,25 +1,40 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
-module PPM (PPM (PPM), encodeP3, ppm) where
+module PPM (StreamingPPM (..), p3Lines) where
 
-import Color (RGB, RGBInt, rgbInt)
+import Color (RGB, rgbInt)
+import Pipes (Pipe, Producer, await, yield, (>->))
+import Pipes.Prelude qualified as P
 import Vec (R3 (R3))
 
-data PPM = PPM {ppmWidth :: Int, ppmHeight :: Int, ppmMaxP :: Int, ppmPixels :: [RGBInt]}
+data StreamingPPM m = StreamingPPM
+  { ppmWidth :: Int,
+    ppmHeight :: Int,
+    maxP :: Int,
+    ppmStream :: Producer RGB m ()
+  }
 
-chunksOf :: Int -> [a] -> [[a]]
-chunksOf _ [] = []
-chunksOf n xs = take n xs : chunksOf n (drop n xs)
+chunksOf :: Monad m => Int -> Pipe a [a] m ()
+chunksOf n = replicateM n await >>= yield >> chunksOf n
 
-encodeP3 :: PPM -> Text
-encodeP3 PPM {..} =
-  let header = ["P3", unwords [show ppmWidth, show ppmHeight], show ppmMaxP]
-      rows =
-        [ unwords [show c | R3 r g b <- row, c <- [r, g, b]]
-          | row <- chunksOf ppmWidth ppmPixels
-        ]
-   in unlines (header <> rows)
-
-ppm :: Int -> Int -> Int -> [RGB] -> PPM
-ppm width height maxP pixels = PPM width height maxP $ fmap (rgbInt maxP) pixels
+p3Lines :: StreamingPPM IO -> Producer Text IO ()
+p3Lines StreamingPPM {..} = do
+  yield "P3"
+  yield $ unwords [show ppmWidth, show ppmHeight]
+  yield $ show maxP
+  ppmStream >-> rows
+  where
+    rows :: Pipe RGB Text IO ()
+    rows =
+      chunksOf ppmWidth
+        >-> P.map
+          ( \row ->
+              unwords
+                [ show c
+                  | pixel <- row,
+                    let R3 r g b = rgbInt maxP pixel,
+                    c <- [r, g, b]
+                ]
+          )
