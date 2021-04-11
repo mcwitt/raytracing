@@ -8,6 +8,9 @@ module Hittable
   )
 where
 
+import Control.Monad (guard)
+import Data.Maybe (mapMaybe)
+import Data.Ord (comparing)
 import Material (Material, Side (..))
 import Ray (Ray (Ray), at)
 import Safe (minimumByMay)

@@ -5,36 +5,28 @@
 module PPM (StreamingPPM (..), p3Lines) where
 
 import Color (RGB, rgbInt)
-import Pipes (Pipe, Producer, await, yield, (>->))
-import Pipes.Prelude qualified as P
+import Streaming (Of, Stream)
+import Streaming.Prelude qualified as S
 import Vec (R3 (R3))
 
 data StreamingPPM m = StreamingPPM
   { ppmWidth :: Int,
     ppmHeight :: Int,
     maxP :: Int,
-    ppmStream :: Producer RGB m ()
+    ppmRows :: Stream (Of [RGB]) m ()
   }
 
-chunksOf :: Monad m => Int -> Pipe a [a] m ()
-chunksOf n = replicateM n await >>= yield >> chunksOf n
-
-p3Lines :: StreamingPPM IO -> Producer Text IO ()
+p3Lines :: StreamingPPM IO -> Stream (Of String) IO ()
 p3Lines StreamingPPM {..} = do
-  yield "P3"
-  yield $ unwords [show ppmWidth, show ppmHeight]
-  yield $ show maxP
-  ppmStream >-> rows
+  S.yield "P3"
+  S.yield $ unwords [show ppmWidth, show ppmHeight]
+  S.yield $ show maxP
+  S.map mkLine ppmRows
   where
-    rows :: Pipe RGB Text IO ()
-    rows =
-      chunksOf ppmWidth
-        >-> P.map
-          ( \row ->
-              unwords
-                [ show c
-                  | pixel <- row,
-                    let R3 r g b = rgbInt maxP pixel,
-                    c <- [r, g, b]
-                ]
-          )
+    mkLine row =
+      unwords
+        [ show c
+          | pixel <- row,
+            let R3 r g b = rgbInt maxP pixel,
+            c <- [r, g, b]
+        ]

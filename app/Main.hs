@@ -11,6 +11,8 @@ import Camera
     defaultCameraConfig,
   )
 import Color (uniformRGB)
+import Control.Monad (forM)
+import Data.Maybe (catMaybes)
 import Data.RVar (RVar, sampleRVar)
 import Data.Random (stdUniform, uniform)
 import Hittable (Sphere (Sphere))
@@ -23,16 +25,15 @@ import Lib
   )
 import Material (dielectric, lambertian, metal)
 import Options.Generic
-  ( ParseRecord (..),
+  ( Generic,
+    ParseRecord (..),
     getRecord,
     lispCaseModifiers,
     parseRecordWithModifiers,
     type (<!>) (unDefValue),
   )
 import PPM (p3Lines)
-import Pipes (MFunctor (hoist), runEffect, (>->))
-import Pipes.Prelude.Text as P (writeFileLn)
-import Pipes.Safe (runSafeT)
+import Streaming.Prelude as S (writeFile)
 import Vec (R3 (..), minus, norm, times)
 
 data Arguments = Arguments
@@ -97,4 +98,4 @@ main = do
       outputLines = p3Lines renderedPixels
       outputPath = unDefValue $ outputFile args
 
-  runSafeT $ runEffect $ hoist lift outputLines >-> P.writeFileLn outputPath
+  S.writeFile outputPath outputLines

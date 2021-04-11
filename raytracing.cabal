@@ -27,13 +27,8 @@ common shared-properties
     ImportQualifiedPost
 
   build-depends:
-    , base    ^>=4.14.1
-    , pipes   ^>=4.3.15
-    , relude  ^>=1.0.0
-
-  mixins:
-    base hiding (Prelude),
-    relude (Relude as Prelude)
+    , base       ^>=4.14.1
+    , streaming  ^>=0.2.3
 
   ghc-options:
     -O3 -Weverything -Wno-missing-exported-signatures
@@ -67,8 +62,6 @@ executable raytracing
   main-is:        Main.hs
   build-depends:
     , optparse-generic  ^>=1.4.4
-    , pipes-safe        ^>=2.3.3
-    , pipes-text        ^>=1.0.0
     , random-fu         ^>=0.2.7
     , raytracing
     , rvar              ^>=0.2.0

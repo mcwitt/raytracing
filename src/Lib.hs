@@ -12,13 +12,16 @@ where
 
 import Camera (CameraConfig, camera, getRay)
 import Color (RGB)
+import Control.Monad (forM, replicateM)
 import Data.RVar (RVar, sampleRVar)
 import Data.Random (stdUniform)
 import Hittable (Hit (..), Hittable, hit)
 import Material (Material (scatter), Scattered (Scattered))
 import PPM (StreamingPPM (..))
-import Pipes (Producer, each, for, yield)
 import Ray (Ray (Ray, rayDir))
+import Streaming (MonadTrans (lift), Of, Stream)
+import Streaming.Prelude qualified as S
+import System.IO (hFlush, stdout)
 import Text.Printf (printf)
 import Vec
   ( R3 (..),
@@ -76,26 +79,27 @@ rayColor world background = go
     eps = 1e-9
     infinity = 1e9
 
-renderedPixels :: Hittable a => ImageConfig -> RenderConfig -> CameraConfig -> a -> Producer RGB IO ()
-renderedPixels ImageConfig {..} RenderConfig {..} cameraConfig scene =
+renderedRows :: Hittable a => ImageConfig -> RenderConfig -> CameraConfig -> a -> Stream (Of [RGB]) IO ()
+renderedRows ImageConfig {..} RenderConfig {..} cameraConfig scene = do
   let c = camera cameraConfig
-      pixels = [(x, y) | y <- reverse [1 .. imHeight], x <- [1 .. imWidth]]
-      pixelValues = for (each pixels) $ \(x, y) -> do
-        lift $ putStr $ printf "\rProgress: %d/%d" (imHeight - y + 1) imHeight
-        let color :: RVar RGB = do
-              dx <- stdUniform
-              dy <- stdUniform
-              let u = (fromIntegral x + dx) / fromIntegral (imWidth - 1)
-                  v = (fromIntegral y + dy) / fromIntegral (imHeight - 1)
-              ray <- getRay cameraConfig c u v
-              rayColor scene renderBackground renderMaxChildRays ray
-            colors = replicateM renderSamples color
-        rawSample <- lift $ sampleRVar colors
-        let gammaCorrected = vmap sqrt $ vmean rawSample
-        yield gammaCorrected
-   in pixelValues
+      rows = reverse [1 .. imHeight]
+  S.for (S.each rows) $ \y -> do
+    lift $ printf "\rProgress: %d/%d" (imHeight - y + 1) imHeight >> hFlush stdout
+    row <- forM [1 .. imWidth] $ \x -> do
+      let color :: RVar RGB = do
+            dx <- stdUniform
+            dy <- stdUniform
+            let u = (fromIntegral x + dx) / fromIntegral (imWidth - 1)
+                v = (fromIntegral y + dy) / fromIntegral (imHeight - 1)
+            ray <- getRay cameraConfig c u v
+            rayColor scene renderBackground renderMaxChildRays ray
+          colors = replicateM renderSamples color
+      rawSample <- lift $ sampleRVar colors
+      let gammaCorrected = vmap sqrt $ vmean rawSample
+      pure gammaCorrected
+    S.yield row
 
 render :: Hittable a => ImageConfig -> RenderConfig -> CameraConfig -> a -> StreamingPPM IO
 render imageConfig renderConfig cameraConfig scene =
   StreamingPPM (imWidth imageConfig) (imHeight imageConfig) 255 $
-    renderedPixels imageConfig renderConfig cameraConfig scene
+    renderedRows imageConfig renderConfig cameraConfig scene

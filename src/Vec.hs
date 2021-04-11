@@ -29,6 +29,7 @@ module Vec
 where
 
 import Data.List (foldl1')
+import Data.Monoid (All (All, getAll))
 
 data R3 a where
   R3 :: Real a => !a -> !a -> !a -> R3 a

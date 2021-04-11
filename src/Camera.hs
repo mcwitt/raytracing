@@ -6,7 +6,7 @@ module Camera (CameraConfig (..), camera, defaultCameraConfig, getRay) where
 import Control.Monad.Loops (iterateUntil)
 import Data.RVar (RVar)
 import Data.Random (uniform)
-import Data.Ratio ((%))
+import Data.Ratio (Ratio, (%))
 import Ray (Ray (Ray))
 import Vec
   ( R3 (..),
